@@ -25,4 +25,8 @@ python build.py
 python build.py --flash
 ~~~
 
+`--flash` 走仓库 `tools/stcflash.py`：先在 115200 上发 legacy `D`（板上固件 5 秒倒计时后
+`IAP_CONTR=0xE0` 软复位进 ISP bootloader），stcgal 握手接住即零按键全自动；接不住自动降级手动
+（出现 `Waiting for MCU` 后按一次板上 Reset）。
+
 真实成功必须以串口 ACK/ERROR、STATE/EVENT 和物理现象为依据。没有接入步进电机时，只能证明接口、构建和命令链，不能宣称电机物理完成。

@@ -77,6 +77,7 @@ static xdata char lbuf[24];
 static xdata unsigned char segbuf[8];
 static xdata unsigned char display_clock = 1;   /* 1=HH-MM-SS 实时钟，0=手动显示 */
 static xdata unsigned char led_mask = 0;
+static xdata unsigned char isp_countdown = 0; /* 'D' 命令：5s 后软复位进 ISP bootloader */
 
 /* ---------------- 事件锁存（100mS 拍消费 -> EVENT 帧） ---------------- */
 static xdata unsigned char ev_hall = 0;   /* 1=close 2=away */
@@ -442,7 +443,9 @@ static void process_line(void)
     if (!(n >= 4 && s[0]=='C' && s[1]=='M' && s[2]=='D' && s[3]==':')) {
         idbuf[0]='0'; idbuf[1]=0; idn=1;
         if (s[0] == 'V') { want_state = 1; queue_ack(idbuf, idn, 0); return; }
-        if (s[0] == 'D') { send_diag(); queue_ack(idbuf, idn, 0); return; }
+        /* legacy 'D' = 进 ISP 下载模式（stcflash 全自动烧录约定，与 demo/探针固件一致）；
+           板级诊断走 CMD:<id>:diag，不占用 'D'。 */
+        if (s[0] == 'D') { isp_countdown = 5; queue_ack(idbuf, idn, 0); return; }
         if (s[0] == 'B' && n >= 3) {
             unsigned char d1 = (unsigned char)(s[1]-'0'), d2 = (unsigned char)(s[2]-'0');
             if (d1 > 9) d1 = 0; if (d2 > 9) d2 = 0;
@@ -561,6 +564,16 @@ void cb1s(void)
     }
     if (display_clock) show_clock(sw_min, sw_sec);
     want_state = 1;
+
+    /* ISP 倒计时：给上位机时间启动 stcgal 握手，到点软复位进 bootloader。
+       实测(2026-09-02)：立即复位会落回用户区，延迟复位 + 已就位握手流才稳定接住。 */
+    if (isp_countdown != 0) {
+        isp_countdown--;
+        if (isp_countdown == 0) {
+            IAP_CONTR = 0xE0;              /* IAPEN|SWBS|SWRST -> ISP */
+            while (1);
+        }
+    }
 }
 
 void main(void)

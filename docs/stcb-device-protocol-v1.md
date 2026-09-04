@@ -36,6 +36,8 @@ STATE:seq=00AF,clock=17:20:03,temp=1D6,light=038,nav=3FF,ext0=000,ext1=001,hall=
 - clock：HH:MM:SS。
 - temp/light/nav/ext0/ext1：3 位十六进制原始 ADC（0x000–0x3FF）。温度单位换算由 Driver 完成。
 - hall/vib/k1/k2/k3：00 或 01。Hall 直接读取 P1.2 电平，01 表示磁场存在。
+- navkey：00=空闲、01=右、02=下、03=中心、04=左、05=上、06=K3。
+- led：L0-L7 的 8-bit 十六进制 mask；display：clock 或 manual。
 - motor/beep：free 或 busy。
 
 ## 4. 事件
@@ -46,7 +48,10 @@ EVENT:hall=away
 EVENT:vib=quake
 EVENT:key1=press
 EVENT:key1=release
-EVENT:nav=3
+EVENT:nav=3:press
+EVENT:nav=3:release
+EVENT:key3:press
+EVENT:key3:release
 ~~~
 
 事件是边沿事实；STATE 是当前电平事实。Driver 必须分别上报 Event 与 Observation，不能用事件缓存冒充当前状态。
@@ -103,4 +108,6 @@ DIAG 用于定位端口电平、焊接和引脚问题，不进入普通 Capabili
 
 - proto=1 的字段可追加，既有字段与含义不可原地改变。
 - 破坏性变更发布 proto=2；Driver 可并行支持多个 major，但不得猜测。
-- 固件暂时接受 V/B/L/N/T legacy 帧用于 bring-up；legacy ACK 使用 id=0，不具备生产级关联语义。CloudPath 正式闭环只使用 CMD:<id>:...。
+- 固件暂时接受 V/B/L/N/T legacy 帧用于 bring-up；legacy ACK 使用 id=0，不具备生产级关联语义。CloudPath 正式闭环只使用 `CMD:<id>:...`。
+- legacy 单字符 `D` 表示**进入 ISP 下载模式**（5 秒倒计时后 `IAP_CONTR=0xE0` 软复位），与 `tools/stcflash.py` 的全自动烧录约定一致；诊断只通过 `CMD:<id>:diag` 触发，任何上位机都不得把诊断命令编码成 `D`。
+- legacy `D` 必须以固件实际波特率发送（Full Firmware v1 = 115200）；波特率不匹配时字节被当作噪声丢弃，自动烧录会静默降级为手动。

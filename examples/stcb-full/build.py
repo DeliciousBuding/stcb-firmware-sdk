@@ -58,7 +58,8 @@ def build() -> bool:
 def flash() -> bool:
     sys.path.insert(0, str(ROOT / "tools"))
     import stcflash
-    ok = stcflash.flash(str(BASE / "main.hex"), port=PORT, label="stcb-full-v1")
+    # Full Firmware v1 的 UART 是 115200；stcflash 发 D 命令必须用同一波特率
+    ok = stcflash.flash(str(BASE / "main.hex"), port=PORT, label="stcb-full-v1", baud=115200)
     print("Flash OK" if ok else "Flash FAIL")
     return ok
 

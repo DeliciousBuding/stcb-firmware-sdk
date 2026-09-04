@@ -38,7 +38,7 @@ def _stcgal_cmd(port, hexpath):
     return ([g] if g else ["python3", "-m", "stcgal"]) + ["-p", port, "-P", "stc15", hexpath]
 
 
-def try_auto(hexpath, port=DEFAULT_PORT):
+def try_auto(hexpath, port=DEFAULT_PORT, baud=BAUD):
     """D 命令全自动烧录。True=成功；False=需降级手动。"""
     try:
         import serial
@@ -46,7 +46,7 @@ def try_auto(hexpath, port=DEFAULT_PORT):
         print("[stcflash] 无 pyserial，跳过自动模式")
         return False
     try:
-        ser = serial.Serial(port, BAUD, timeout=0.3)
+        ser = serial.Serial(port, baud, timeout=0.3)
         time.sleep(0.3)
         # D 发 3 次间隔 1.5s：REMIND/MISSED 蜂鸣窗口的 CCP 中断风暴会吞 RX 字节
         #（板级事实：同拍 SetBeep 损坏 UART，2026-09-02 实测 D 单发丢失导致降级）；
@@ -83,7 +83,7 @@ def manual(hexpath, port=DEFAULT_PORT):
     return r.returncode == 0
 
 
-def flash(hexpath, port=DEFAULT_PORT, label="", auto=True):
+def flash(hexpath, port=DEFAULT_PORT, label="", auto=True, baud=BAUD):
     """烧录入口（API）。返回 bool。auto=True 先试 D 命令全自动，失败降级手动。"""
     if not os.path.exists(hexpath):
         print(f"[stcflash] hex 不存在: {hexpath}")
@@ -92,7 +92,7 @@ def flash(hexpath, port=DEFAULT_PORT, label="", auto=True):
     print(f"[stcflash] flash{tag}: {hexpath} @ {port} [{os.path.getsize(hexpath)} bytes]", flush=True)
     free_port()
     time.sleep(0.5)
-    ok = (auto and try_auto(hexpath, port)) or manual(hexpath, port)
+    ok = (auto and try_auto(hexpath, port, baud)) or manual(hexpath, port)
     print("[stcflash] Flash OK" if ok else "[stcflash] Flash FAIL", flush=True)
     return ok
 
@@ -103,8 +103,10 @@ def main():
     ap.add_argument("--port", default=DEFAULT_PORT)
     ap.add_argument("--manual", action="store_true", help="跳过自动模式直接手动")
     ap.add_argument("--label", default="", help="日志标签")
+    ap.add_argument("--baud", type=int, default=BAUD,
+                    help="板端固件波特率（只影响发 D 命令，默认 9600）")
     a = ap.parse_args()
-    sys.exit(0 if flash(a.hex, a.port, a.label, auto=not a.manual) else 1)
+    sys.exit(0 if flash(a.hex, a.port, a.label, auto=not a.manual, baud=a.baud) else 1)
 
 
 if __name__ == "__main__":
