@@ -55,6 +55,9 @@ def try_auto(hexpath, port=DEFAULT_PORT, baud=BAUD):
             ser.write(b"D")
             if i < 2:
                 time.sleep(1.5)
+        # 行结束符：Full Firmware v1 的行协议要看到 CR/LF 才解析（裸 'D' 会停在行缓冲里），
+        # 而 demo/探针固件按单字节生效、且已在上面 3s 内消费掉 'D'，因此补 CRLF 对两者都安全。
+        ser.write(b"\r\n")
         time.sleep(0.2)
         ser.close()
     except Exception as e:
