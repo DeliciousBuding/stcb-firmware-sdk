@@ -109,5 +109,5 @@ DIAG 用于定位端口电平、焊接和引脚问题，不进入普通 Capabili
 - proto=1 的字段可追加，既有字段与含义不可原地改变。
 - 破坏性变更发布 proto=2；Driver 可并行支持多个 major，但不得猜测。
 - 固件暂时接受 V/B/L/N/T legacy 帧用于 bring-up；legacy ACK 使用 id=0，不具备生产级关联语义。CloudPath 正式闭环只使用 `CMD:<id>:...`。
-- legacy 单字符 `D` 表示**进入 ISP 下载模式**（5 秒倒计时后 `IAP_CONTR=0xE0` 软复位），与 `tools/stcflash.py` 的全自动烧录约定一致；诊断只通过 `CMD:<id>:diag` 触发，任何上位机都不得把诊断命令编码成 `D`。
+- legacy 单字符 `D` 表示**进入 ISP 下载模式**（12 秒倒计时后 `IAP_CONTR=0xE0` 软复位，v1.1 起；v1.0 为 5 秒——stcgal 冷启动可能超过 5s 导致竞争失败），与 `tools/stcflash.py` 的全自动烧录约定一致；诊断只通过 `CMD:<id>:diag` 触发，任何上位机都不得把诊断命令编码成 `D`。
 - legacy `D` 必须以固件实际波特率发送（Full Firmware v1 = 115200）；波特率不匹配时字节被当作噪声丢弃，自动烧录会静默降级为手动。

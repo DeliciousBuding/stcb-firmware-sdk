@@ -31,7 +31,7 @@
 
 code unsigned long SysClock = 11059200;
 
-code char TAG_BOOT[]  = "HELLO:stcb-full:v1:proto=1:baud=115200";
+code char TAG_BOOT[]  = "HELLO:stcb-full:v1.1:proto=1:baud=115200";
 code char TAG_CAPS[]  = "CAPS:clock,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,motor,rtc-sync,diag";
 
 sbit HALL_PIN = P1^2;   /* 原理图定案 HALL -> P1.2 */
@@ -77,7 +77,7 @@ static xdata char lbuf[24];
 static xdata unsigned char segbuf[8];
 static xdata unsigned char display_clock = 1;   /* 1=HH-MM-SS 实时钟，0=手动显示 */
 static xdata unsigned char led_mask = 0;
-static xdata unsigned char isp_countdown = 0; /* 'D' 命令：5s 后软复位进 ISP bootloader */
+static xdata unsigned char isp_countdown = 0; /* 'D' 命令：12s 后软复位进 ISP bootloader */
 
 /* ---------------- 事件锁存（100mS 拍消费 -> EVENT 帧） ---------------- */
 static xdata unsigned char ev_hall = 0;   /* 1=close 2=away */
@@ -86,6 +86,10 @@ static xdata unsigned char ev_key  = 0;   /* 低4位=key号(1..3) 高4位=1press
 static xdata unsigned char ev_nav  = 0;   /* 高4位=1press/2release，低4位=1..5方向/6=K3 */
 static xdata unsigned char nav_state = 0; /* 0=无，1右2下3中4左5上6=K3 */
 static xdata unsigned char key3_state = 0;
+/* 自采边沿检测的上一次电平（hall/K1/K2）：0=无磁场/未按下 */
+static xdata unsigned char prev_hall = 0;
+static xdata unsigned char prev_k1 = 0;
+static xdata unsigned char prev_k2 = 0;
 
 #define HC(n) (char)('0' + (((unsigned char)(n)) & 0x0F))
 
@@ -131,9 +135,14 @@ static void send_bytes(char *b, unsigned char n)
 static void send_line(char code *s)
 {
     unsigned char i = 0;
-    while (s[i] != 0 && i < 20) { lbuf[i] = s[i]; i++; }
-    lbuf[i++] = '\r'; lbuf[i++] = '\n';
-    send_bytes(lbuf, i);
+    /* 用 obuf(192) 而不是 lbuf(24)：CAPS 行 116 字符，旧的 20 字符上限会把它截断。 */
+    /* 先等 TX 空再写 obuf：Uart1Print 异步从 obuf 逐字节发送，背靠背 send_line 会在
+       上一次发送未完成时覆盖 obuf（2026-09-05 实测：HELLO 行 41 字节队列被 CAPS 覆盖，
+       线上出现 "H"+CAPS前40字节 的畸形行，身份探针永远失败）。 */
+    while (GetUart1TxStatus() != enumUart1TxFree);
+    while (s[i] != 0 && i < 180) { obuf[i] = s[i]; i++; }
+    obuf[i++] = '\r'; obuf[i++] = '\n';
+    send_bytes(obuf, i);
 }
 static void put3hex(unsigned char *o, unsigned char *i, unsigned int v)
 {
@@ -161,6 +170,7 @@ static void send_state(void)
     hall_lvl = (HALL_PIN == 0) ? 1 : 0;      /* A3144 开集电极：磁场=低 */
     vib_lvl  = (VIB_PIN == 0) ? 1 : 0;
     seq++;
+    while (GetUart1TxStatus() != enumUart1TxFree);  /* obuf 覆盖红线：等 TX 空再写 */
     obuf[i++] = 'S'; obuf[i++] = 'T'; obuf[i++] = 'A'; obuf[i++] = 'T'; obuf[i++] = 'E'; obuf[i++] = ':';
     obuf[i++] = 's'; obuf[i++] = 'e'; obuf[i++] = 'q'; obuf[i++] = '=';
     obuf[i++] = hexn((unsigned char)(seq >> 12)); obuf[i++] = hexn((unsigned char)(seq >> 8));
@@ -199,6 +209,7 @@ static void send_state(void)
 static void send_diag(void)
 {
     unsigned char i = 0;
+    while (GetUart1TxStatus() != enumUart1TxFree);  /* obuf 覆盖红线：等 TX 空再写 */
     obuf[i++] = 'D'; obuf[i++] = 'I'; obuf[i++] = 'A'; obuf[i++] = 'G'; obuf[i++] = ':';
     obuf[i++] = 'p'; obuf[i++] = '1'; obuf[i++] = '='; obuf[i++] = hexn(P1 >> 4); obuf[i++] = hexn(P1);
     obuf[i++] = ','; obuf[i++] = 'p'; obuf[i++] = '2'; obuf[i++] = '='; obuf[i++] = hexn(P2 >> 4); obuf[i++] = hexn(P2);
@@ -258,8 +269,8 @@ static unsigned char arg_span(char *s, unsigned char an, char code *k, unsigned 
 /* ---------------- 执行器 ---------------- */
 static unsigned char do_beep(unsigned int freq, unsigned int dur10ms)
 {
-    if (freq == 0 || freq > 4000) freq = 1000;
-    if (dur10ms == 0 || dur10ms > 120) dur10ms = 20;
+    /* 越界即 badarg（协议 v1 契约），不静默钳制：矩阵可测、静音意图(freq=0)不会变成响声 */
+    if (freq == 0 || freq > 4000 || dur10ms == 0 || dur10ms > 120) return 1;
     beep_freq = freq; beep_dur = (unsigned char)dur10ms; beep_pending = 1;
     return 0;
 }
@@ -394,6 +405,7 @@ static void send_ack(void)
 {
     unsigned char i = 0, j = 0;
     char code *c;
+    while (GetUart1TxStatus() != enumUart1TxFree);  /* obuf 覆盖红线：等 TX 空再写 */
     if (ack_code == 0) { obuf[i++]='A'; obuf[i++]='C'; obuf[i++]='K'; obuf[i++]=':'; }
     else               { obuf[i++]='E'; obuf[i++]='R'; obuf[i++]='R'; obuf[i++]=':'; }
     while (ack_id[j]) obuf[i++] = ack_id[j++];
@@ -404,9 +416,13 @@ static void send_ack(void)
     send_bytes(obuf, i);
     ack_code = 0xFF;
 }
-static void send_event(char code *body)
+/* body 用 generic 指针：调用方既传 code 字面量（"hall=close"），也传 xdata 缓冲（lbuf）。
+   曾经写成 char code *，结果 lbuf 事件体被当成 flash 地址读出二进制垃圾（2026-09-04 实测：
+   公网事件 type = 07 20 xx 04 7F 01 xx 02 7F）。 */
+static void send_event(char *body)
 {
     unsigned char i = 0, j = 0;
+    while (GetUart1TxStatus() != enumUart1TxFree);  /* obuf 覆盖红线：等 TX 空再写 */
     obuf[i++]='E'; obuf[i++]='V'; obuf[i++]='E'; obuf[i++]='N'; obuf[i++]='T'; obuf[i++]=':';
     while (body[j] && i < 150) obuf[i++] = body[j++];
     obuf[i++] = '\r'; obuf[i++] = '\n';
@@ -445,7 +461,7 @@ static void process_line(void)
         if (s[0] == 'V') { want_state = 1; queue_ack(idbuf, idn, 0); return; }
         /* legacy 'D' = 进 ISP 下载模式（stcflash 全自动烧录约定，与 demo/探针固件一致）；
            板级诊断走 CMD:<id>:diag，不占用 'D'。 */
-        if (s[0] == 'D') { isp_countdown = 5; queue_ack(idbuf, idn, 0); return; }
+        if (s[0] == 'D') { isp_countdown = 12; queue_ack(idbuf, idn, 0); return; }
         if (s[0] == 'B' && n >= 3) {
             unsigned char d1 = (unsigned char)(s[1]-'0'), d2 = (unsigned char)(s[2]-'0');
             if (d1 > 9) d1 = 0; if (d2 > 9) d2 = 0;
@@ -481,18 +497,20 @@ static void process_line(void)
 /* ---------------- 100mS 拍：事件消费 + 命令执行 + 发送窗口 ---------------- */
 void cb100ms(void)
 {
-    unsigned char h, v, k, ka, sent = 0;
+    unsigned char v, ka, sent = 0;
+    unsigned char lvl;
 
-    h = GetHallAct();
-    if (h == enumHallGetClose) ev_hall = 1;
-    else if (h == enumHallGetAway) ev_hall = 2;
+    /* hall / K1 / K2：直读引脚电平做边沿检测，与 STATE 用同一事实源（100mS 拍即去抖）。
+       旧实现用 GetHallAct/GetKeyAct 黑盒边沿，实测在无输入时每秒冒出 key press 事件。 */
+    lvl = (HALL_PIN == 0) ? 1 : 0;
+    if (lvl != prev_hall) { ev_hall = lvl ? 1 : 2; prev_hall = lvl; }
+    lvl = (KEY1_PIN == 0) ? 1 : 0;
+    if (lvl != prev_k1) { ev_key = (unsigned char)(1 | (lvl ? 0x10 : 0x20)); prev_k1 = lvl; }
+    lvl = (KEY2_PIN == 0) ? 1 : 0;
+    if (lvl != prev_k2) { ev_key = (unsigned char)(2 | (lvl ? 0x10 : 0x20)); prev_k2 = lvl; }
+    /* 振动是短脉冲，100mS 电平采样会漏，保留 BSP 的锁存边沿 API。 */
     v = GetVibAct();
     if (v == enumVibQuake) ev_vib = 1;
-    for (k = 0; k < 3; k++) {
-        ka = GetKeyAct((char)k);
-        if (ka == enumKeyPress) ev_key = (unsigned char)(k + 1) | 0x10;
-        else if (ka == enumKeyRelease) ev_key = (unsigned char)(k + 1) | 0x20;
-    }
     ka = GetAdcNavAct(enumAdcNavKeyRight);
     if (ka == enumKeyPress) { ev_nav = 0x11; nav_state = 1; }
     else if (ka == enumKeyRelease) { ev_nav = 0x21; if (nav_state == 1) nav_state = 0; }
