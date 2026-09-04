@@ -18,9 +18,10 @@ jobs:
       - name: Compile Python tooling
         run: |
           python -m py_compile tools/serlink.py tools/stcflash.py tools/serial-console.py tools/serial-log.py \
-            examples/sensor-probe/build.py examples/sensor-probe/build_test.py
+            examples/sensor-probe/build.py examples/sensor-probe/build_test.py examples/stcb-full/build.py
       - name: Presence checks
         run: |
           test -f README.md && test -f LICENSE && test -f BSP/STCBSP_V3.6.LIB
           test -f tools/stcflash.py && test -f examples/sensor-probe/main.c
+          test -f examples/stcb-full/main.c && test -f docs/stcb-device-protocol-v1.md
           echo "stcb-firmware-sdk package OK"

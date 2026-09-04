@@ -15,7 +15,8 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 |------|------|
 | `BSP/` | 板级驱动库（`inc/*.h` 接口 + `STCBSP_V3.6.LIB` Keil C51 静态库） |
 | `tools/` | 设备侧工具链：`serlink.py`(串口基建/STC_PORT/NUL清洗) · `stcflash.py`(烧录SSOT) · `serial-console.py` · `serial-log.py` |
-| `examples/sensor-probe/` | 参考探针固件（全量传感器+执行器，2KB 内，验证 BSP 集成），命令集 V/B/L/N/T |
+| `examples/sensor-probe/` | 2KB legacy 探针（V/B/L/N/T），只用于兼容/bring-up |
+| `examples/stcb-full/` | CloudPath reference firmware：完整板载能力 + Device Protocol v1 + 真实 ACK/ERROR |
 
 
 ## 生态定位
@@ -27,7 +28,7 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 ## 使用
 
 - 依赖：Keil C51（`C51/BL51/OH51`）编译，串口默认 `COM3`（env `STC_PORT` 覆盖）。
-- 编译探针：`cd examples/sensor-probe && python build.py`（`--flash` 委托 `tools/stcflash.py`）。
+- 编译完整固件：`cd examples/stcb-full && python build.py`（`--flash` 委托 `tools/stcflash.py`）。
 - 注意：`build.py` 中 `KEIL_BIN`/`STC_INC` 为**本机路径占位**，请按你机器上的 Keil 安装路径调整。
 
 ## 开源范围

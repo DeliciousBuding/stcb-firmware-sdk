@@ -10,12 +10,13 @@ A reusable, open-source lower layer shared by device firmware, course projects, 
 |-----------|---------|
 | `BSP/` | Board support package (`inc/*.h` API + `STCBSP_V3.6.LIB` Keil C51 static library) |
 | `tools/` | Device tooling: `serlink.py` (serial base / `STC_PORT` / NUL scrubbing) · `stcflash.py` (flashing SSOT) · `serial-console.py` · `serial-log.py` |
-| `examples/sensor-probe/` | Reference probe firmware (all sensors/actuators, within 2KB), command set V/B/L/N/T |
+| `examples/sensor-probe/` | Legacy 2 KB bring-up probe (V/B/L/N/T) |
+| `examples/stcb-full/` | CloudPath reference firmware: full board capabilities, Device Protocol v1, real ACK/ERROR |
 
 ## Usage
 
 - Dependencies: Keil C51 (`C51/BL51/OH51`), serial default `COM3` (override via `STC_PORT`).
-- Build the probe: `cd examples/sensor-probe && python build.py` (`--flash` delegates to `tools/stcflash.py`).
+- Build the full firmware: `cd examples/stcb-full && python build.py` (`--flash` delegates to `tools/stcflash.py`).
 - Note: `KEIL_BIN` / `STC_INC` in `build.py` are **machine-specific placeholders**; adjust to your Keil install.
 
 ## Ecosystem
