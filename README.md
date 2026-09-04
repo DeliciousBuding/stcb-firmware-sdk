@@ -1,5 +1,11 @@
 # stcb-firmware-sdk
 
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![CI](https://github.com/DeliciousBuding/stcb-firmware-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/DeliciousBuding/stcb-firmware-sdk/actions)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%2F%20Linux-informational)]()
+
+
 STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设备固件、课程工程与
 `cloud-path-driver-stcb`（平台设备驱动）共享引用，是可复用、可开源的下层。
 
