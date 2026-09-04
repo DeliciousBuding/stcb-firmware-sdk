@@ -1,0 +1,17 @@
+# 构建产物
+*.hex
+*.obj
+*.lst
+*.m51
+*.lnp
+MAIN
+*.build
+*.plg
+
+# Python
+__pycache__/
+*.pyc
+*.code-workspace
+
+# 私有层
+.local/
