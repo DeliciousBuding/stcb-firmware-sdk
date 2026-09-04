@@ -11,6 +11,13 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 | `tools/` | 设备侧工具链：`serlink.py`(串口基建/STC_PORT/NUL清洗) · `stcflash.py`(烧录SSOT) · `serial-console.py` · `serial-log.py` |
 | `examples/sensor-probe/` | 参考探针固件（全量传感器+执行器，2KB 内，验证 BSP 集成），命令集 V/B/L/N/T |
 
+
+## 生态定位
+
+与 [CloudPath](https://github.com/DeliciousBuding/cloud-path)（云原生、插件驱动的互联物联网控制平台）
+配套：设备固件（本 SDK）→ 平台设备驱动（`cloud-path-driver-stcb`）→ 控制平台，构成
+「板卡 → SDK → 云」的边云协同链路；本 SDK 提供板级 BSP/工具链，是可复用、可开源的下层统一底座。
+
 ## 使用
 
 - 依赖：Keil C51（`C51/BL51/OH51`）编译，串口默认 `COM3`（env `STC_PORT` 覆盖）。
