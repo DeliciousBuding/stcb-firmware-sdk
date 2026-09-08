@@ -16,6 +16,7 @@ CLI: python tools/stcflash.py <hex> [--port COM3] [--manual] [--label 名称]
 API: import stcflash; stcflash.flash(hexpath, port="COM3", label="", auto=True) -> bool
 """
 import argparse
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -34,8 +35,15 @@ free_port = serlink.free_port   # 兼容别名（旧入口引用过 stcflash.fre
 
 
 def _stcgal_cmd(port, hexpath):
-    g = shutil.which("stcgal")   # 本机 stcgal 在 PATH；python3(miniforge) 未装，勿硬编码 python3 -m
-    return ([g] if g else ["python3", "-m", "stcgal"]) + ["-p", port, "-P", "stc15", hexpath]
+    # 优先走当前解释器模块：PATH 里的 stcgal.exe launcher 可能指向已失效的解释器。
+    if importlib.util.find_spec("stcgal"):
+        prefix = [sys.executable, "-m", "stcgal"]
+    else:
+        g = shutil.which("stcgal")
+        if not g:
+            raise FileNotFoundError("stcgal module/executable not found")
+        prefix = [g]
+    return prefix + ["-p", port, "-P", "stc15", hexpath]
 
 
 def try_auto(hexpath, port=DEFAULT_PORT, baud=BAUD):
