@@ -214,6 +214,7 @@ void cbrx(void)
     unsigned char c = (unsigned char)rxbuf;
     if (c == 'D') { isp_countdown = 5; return; }
     if (c == 'T') { sync_n = 0; rx_cmd = 0; rx_n = 0; return; }
+    if (c == '\r' || c == '\n') return;   /* 行尾不能覆盖 pending_cmd（V 可带/不带 CRLF） */
     if (rx_cmd != 0) {
         if (c >= '0' && c <= '9') {
             rx_payload[rx_n++] = c;
