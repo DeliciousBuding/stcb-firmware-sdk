@@ -239,6 +239,10 @@ void main(void)
     SetDisplayerArea(0, 7);
     Seg7Print(10, 10, 10, 10, 10, 10, 10, 10);
     Uart1Init(115200);
+    SetUart1Rxd(&rxbuf, 1, 0, 0);
+    SetEventCallBack(enumEventSys1S, cb1s);
+    SetEventCallBack(enumEventUart1Rxd, cbrx);
+    MySTC_Init();   /* 必须先于任何 send：send_bytes 会等 UART TX free。 */
 
     /* 上电第一件事：原样读（对照组）。实测本板不 Init 时三wire总线未被驱动，
        读回来是浮空垃圾（rtc=6E:79:73 / mark=FE,F8），所以 PRE 只作为「未驱动」的
@@ -259,11 +263,6 @@ void main(void)
         DS1302Init(d);
     }
     report("POST:");
-
-    SetUart1Rxd(&rxbuf, 1, 0, 0);
-    SetEventCallBack(enumEventSys1S, cb1s);
-    SetEventCallBack(enumEventUart1Rxd, cbrx);
-    MySTC_Init();
 
     send_line("BOOT:probe=rtc-battery-v3,uart=115200,seq=PRE-raw,Init,POST,poll-from-host");
     send_line("HELP:H R=read S=set12:34:56+marks N=marks I=DS1302Init(compare) T=10ticks D=isp");
