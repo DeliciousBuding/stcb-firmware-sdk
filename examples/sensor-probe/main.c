@@ -19,7 +19,8 @@
 //   L+d      -> LED（0=灭，1-8=对应LED，9=全亮 0xFF）
 //   N+8digits-> 数码管（8 个 decode_table 编号 0-9=数字）
 //   T+HHMM   -> 对时（软件 hour 直设 + min/sec 偏移，目标秒=00 相位归整）
-//   M/S/O/R/D: 未包含（见上）。
+//   D        -> 5s 后软复位进 ISP（stcflash 全自动烧录约定）
+//   M/S/O/R: 未包含（见上）。
 //
 // 内存策略：大缓冲放 xdata（外部 RAM 充足），避免 8051 直接 data 128B 溢出。
 
@@ -72,6 +73,7 @@ static unsigned char reply_mm = 0, reply_ss = 0;
 static unsigned char beep_pending = 0;
 static unsigned int  beep_freq = 0;
 static unsigned int  beep_dur = 0;
+static unsigned char isp_countdown = 0;
 
 /* 复用缓冲：放 xdata，释放直接 data 空间（否则 8051 data 128B 溢出） */
 static xdata char vbuf[32];
@@ -210,6 +212,7 @@ static void exec_actuator(unsigned char cmd, unsigned char p[])
 void cbrx(void)
 {
     unsigned char c = (unsigned char)rxbuf;
+    if (c == 'D') { isp_countdown = 5; return; }
     if (c == 'T') { sync_n = 0; rx_cmd = 0; rx_n = 0; return; }
     if (rx_cmd != 0) {
         if (c >= '0' && c <= '9') {
@@ -268,6 +271,16 @@ void cb1s(void)
     if (reply_v && GetBeepStatus() == enumBeepFree) {
         send_v_frame(reply_mm, reply_ss);
         reply_v = 0;
+    }
+
+    /* D：延迟软复位进 ISP。保留该命令是烧录红线——Edge 常跑此固件时，
+       不能要求每次烧录都人工按 Reset。 */
+    if (isp_countdown != 0) {
+        isp_countdown--;
+        if (isp_countdown == 0) {
+            IAP_CONTR = 0xE0;
+            while (1);
+        }
     }
 }
 
