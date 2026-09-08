@@ -15,3 +15,6 @@ __pycache__/
 
 # 私有层
 .local/
+
+# RTC 探针现场日志（证据保留本地，不进仓）
+examples/rtc-battery-probe/*.log
