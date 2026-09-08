@@ -20,6 +20,7 @@
 //   N+8digits-> 数码管（8 个 decode_table 编号 0-9=数字）
 //   T+HHMM   -> 对时（软件 hour 直设 + min/sec 偏移，目标秒=00 相位归整）
 //   D        -> 5s 后软复位进 ISP（stcflash 全自动烧录约定）
+//   S        -> 兼容 legacy 轮询：等价请求一次 V 帧
 //   M/S/O/R: 未包含（见上）。
 //
 // 内存策略：大缓冲放 xdata（外部 RAM 充足），避免 8051 直接 data 128B 溢出。
@@ -213,6 +214,7 @@ void cbrx(void)
 {
     unsigned char c = (unsigned char)rxbuf;
     if (c == 'D') { isp_countdown = 5; return; }
+    if (c == 'S') { pending_cmd = 'V'; return; }   /* legacy 驱动 S+V 快发兼容 */
     if (c == 'T') { sync_n = 0; rx_cmd = 0; rx_n = 0; return; }
     if (c == '\r' || c == '\n') return;   /* 行尾不能覆盖 pending_cmd（V 可带/不带 CRLF） */
     if (rx_cmd != 0) {
@@ -295,7 +297,7 @@ void main(void)
 
     BeepInit();
     HallInit();
-    Uart1Init(9600);
+    Uart1Init(115200);
     KeyInit();
     AdcInit(ADCincEXT);
     VibInit();

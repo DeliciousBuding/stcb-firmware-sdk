@@ -3,6 +3,7 @@
 > 独立探针固件：作为 cloudpath stcb 适配器 v2 线协议的**真实载体**（V/B/L/N/T）。
 > 无药盒调度逻辑，绕开 restricted-Keil 2KB 限制（药盒 demo build 因 2KB 无法承载 v2）。
 > 线协议 SSOT：`cloudpath/.local/plan/v0.1-sensor-v2-contract.md`（§2 V 帧 / §3 执行器帧）。
+串口参数：`COM3 @ 115200 8N1`（与 CloudPath Edge `edge.yaml` 的 `baud: 115200` 对齐）。
 
 ## 用途
 
@@ -18,6 +19,7 @@ demo 药盒固件的 demo build 被 Keil C51 **Eval 版 0800H(2KB)** 代码上�
 | `N`+8 | 数码管（8 个 decode_table 编号 0-9=数字） | 8×ASCII 0-9 |
 | `T`+4 | 对时（HHMM，目标秒=00 相位归整） | 单字节 `T` + 4×ASCII 数字 |
 | `D` | 软复位进 ISP（5s 延迟） | 单字节 `D` |
+| `S` | 兼容 legacy 轮询：等价请求一次 V 帧 | 单字节 `S` |
 
 | 命令 | 语义 | 状态 |
 |---|---|---|
@@ -27,7 +29,7 @@ demo 药盒固件的 demo build 被 Keil C51 **Eval 版 0800H(2KB)** 代码上�
 | `N`+8 | 数码管 | ✅ |
 | `T`+4 | 对时 | ✅ |
 | `M`+1 | 步进电机 | ⚠️ **未包含**（2KB 预算取舍，见下） |
-| `S`/`O`/`R` | 药盒转储/开盖/提醒 | ⚠️ **未包含**（本探针无药盒状态/不需要） |
+| `O`/`R` | 开盖/提醒 | ⚠️ **未包含**（本探针无药盒状态/不需要） |
 
 ## V 帧字段
 

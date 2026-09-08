@@ -54,7 +54,7 @@ def flash_main():
         return False
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools")))
     import stcflash
-    ok = stcflash.flash(hexfile, port=COM_PORT, label="sensor-probe")
+    ok = stcflash.flash(hexfile, port=COM_PORT, label="sensor-probe", baud=115200)
     print("Flash OK" if ok else "Flash FAIL")
     return ok
 
