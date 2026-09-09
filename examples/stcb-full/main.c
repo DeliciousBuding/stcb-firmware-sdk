@@ -31,7 +31,7 @@
 
 code unsigned long SysClock = 11059200;
 
-code char TAG_BOOT[]  = "HELLO:stcb-full:v1.1:proto=1:baud=115200";
+code char TAG_BOOT[]  = "HELLO:stcb-full:v1.2:proto=1:baud=115200";
 code char TAG_CAPS[]  = "CAPS:clock,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,motor,rtc-sync,diag";
 
 sbit HALL_PIN = P1^2;   /* 原理图定案 HALL -> P1.2 */
@@ -51,6 +51,12 @@ code char decode_table[] = {
 
 code unsigned int freq_tbl[10] = {0,500,800,1000,1200,1500,2000,2500,3000,0};
 code unsigned char dur_tbl[10]  = {5,10,15,18,25,40,60,90,120,0};
+code unsigned int song_little_freq[] = {262,262,392,392,440,440,392,349,349,330,330,294,294,262};
+code unsigned char song_little_dur[] = {30,30,30,30,30,30,60,30,30,30,30,30,30,60};
+code unsigned int song_birthday_freq[] = {392,392,440,392,523,494,392,392,440,392,587,523,392,392,784,659,523,494,440,698,698,659,523,587,523};
+code unsigned char song_birthday_dur[] = {25,25,50,50,50,75,25,25,50,50,50,75,25,25,50,50,50,50,75,25,25,50,50,50,75};
+code unsigned int song_ode_freq[] = {330,330,349,392,392,349,330,294,262,262,294,330,330,294,294};
+code unsigned char song_ode_dur[] = {25,25,25,25,25,25,25,25,25,25,25,25,38,12,50};
 
 /* ---------------- 软件时间 ---------------- */
 static xdata unsigned char sw_hour = 0x08;
@@ -78,6 +84,10 @@ static xdata unsigned char segbuf[8];
 static xdata unsigned char display_clock = 1;   /* 1=HH-MM-SS 实时钟，0=手动显示 */
 static xdata unsigned char led_mask = 0;
 static xdata unsigned char isp_countdown = 0; /* 'D' 命令：12s 后软复位进 ISP bootloader */
+static xdata unsigned char song_active = 0;
+static xdata unsigned char song_id = 0;
+static xdata unsigned char song_pos = 0;
+static xdata unsigned char song_len = 0;
 
 /* ---------------- 事件锁存（100mS 拍消费 -> EVENT 帧） ---------------- */
 static xdata unsigned char ev_hall = 0;   /* 1=close 2=away */
@@ -271,7 +281,49 @@ static unsigned char do_beep(unsigned int freq, unsigned int dur10ms)
 {
     /* 越界即 badarg（协议 v1 契约），不静默钳制：矩阵可测、静音意图(freq=0)不会变成响声 */
     if (freq == 0 || freq > 4000 || dur10ms == 0 || dur10ms > 120) return 1;
+    if (song_active || beep_pending || GetBeepStatus() == enumBeepBusy) return 2;
     beep_freq = freq; beep_dur = (unsigned char)dur10ms; beep_pending = 1;
+    return 0;
+}
+static unsigned int song_freq(unsigned char id, unsigned char pos)
+{
+    switch (id) {
+    case 1: return song_little_freq[pos];
+    case 2: return song_birthday_freq[pos];
+    case 3: return song_ode_freq[pos];
+    default: return 0;
+    }
+}
+static unsigned char song_dur(unsigned char id, unsigned char pos)
+{
+    switch (id) {
+    case 1: return song_little_dur[pos];
+    case 2: return song_birthday_dur[pos];
+    case 3: return song_ode_dur[pos];
+    default: return 0;
+    }
+}
+static unsigned char span_eq(char *s, unsigned char a, unsigned char b, char code *lit)
+{
+    unsigned char i = 0;
+    while (a < b && lit[i] && s[a] == lit[i]) { a++; i++; }
+    return (a == b && lit[i] == 0) ? 1 : 0;
+}
+static unsigned char do_song(char *args, unsigned char an)
+{
+    unsigned char va, vb;
+    if (song_active || beep_pending || GetBeepStatus() == enumBeepBusy) return 2;
+    if (!arg_span(args, an, "name", &va, &vb)) return 1;
+    if (span_eq(args, va, vb, "little-star")) {
+        song_id = 1; song_len = (unsigned char)(sizeof(song_little_freq) / sizeof(song_little_freq[0]));
+    } else if (span_eq(args, va, vb, "birthday")) {
+        song_id = 2; song_len = (unsigned char)(sizeof(song_birthday_freq) / sizeof(song_birthday_freq[0]));
+    } else if (span_eq(args, va, vb, "ode-to-joy")) {
+        song_id = 3; song_len = (unsigned char)(sizeof(song_ode_freq) / sizeof(song_ode_freq[0]));
+    } else {
+        return 1;
+    }
+    song_pos = 0; song_active = 1;
     return 0;
 }
 static unsigned char do_led(unsigned int mask)
@@ -336,6 +388,7 @@ static unsigned char exec_cmd(char *verb, unsigned char vn, char *args, unsigned
     }
     if (vn == 5 && verb[0]=='s' && verb[1]=='t' && verb[2]=='a' && verb[3]=='t' && verb[4]=='e') { want_state = 1; return 0; }
     if (vn == 4 && verb[0]=='d' && verb[1]=='i' && verb[2]=='a' && verb[3]=='g') { send_diag(); return 0; }
+    if (vn == 4 && verb[0]=='s' && verb[1]=='o' && verb[2]=='n' && verb[3]=='g') { return do_song(args, an); }
     if (vn == 4 && verb[0]=='b' && verb[1]=='e' && verb[2]=='e' && verb[3]=='p') {
         v1 = 1000; v2 = 20;
         if (arg_span(args, an, "freq", &va, &vb)) v1 = parse_int(args, va, vb, &ok);
@@ -494,6 +547,21 @@ static void process_line(void)
 }
 
 
+/* ---------------- 10mS 拍：原生歌曲音序器 ---------------- */
+void cb10ms(void)
+{
+    unsigned int f;
+    unsigned char d;
+    if (!song_active) return;
+    if (beep_pending) return;
+    if (GetBeepStatus() != enumBeepFree) return;
+    if (GetUart1TxStatus() != enumUart1TxFree) return;
+    if (song_pos >= song_len) { song_active = 0; return; }
+    f = song_freq(song_id, song_pos);
+    d = song_dur(song_id, song_pos);
+    if (f != 0 && d != 0 && SetBeep(f, d) == enumSetBeepOK) song_pos++;
+}
+
 /* ---------------- 100mS 拍：事件消费 + 命令执行 + 发送窗口 ---------------- */
 void cb100ms(void)
 {
@@ -538,7 +606,7 @@ void cb100ms(void)
         beep_pending = 0;
     }
 
-    if (GetUart1TxStatus() == enumUart1TxFree && GetBeepStatus() == enumBeepFree) {
+    if (GetUart1TxStatus() == enumUart1TxFree && GetBeepStatus() == enumBeepFree && !song_active) {
         if (ev_hall) { send_event((ev_hall == 1) ? "hall=close" : "hall=away"); ev_hall = 0; sent = 1; }
         else if (ev_vib) { send_event("vib=quake"); ev_vib = 0; sent = 1; }
         else if (ev_key) {
@@ -629,6 +697,7 @@ void main(void)
     sw_sec = t.second;
 
     SetUart1Rxd(&rxbuf, 1, 0, 0);
+    SetEventCallBack(enumEventSys10mS, cb10ms);
     SetEventCallBack(enumEventSys100mS, cb100ms);
     SetEventCallBack(enumEventSys1S, cb1s);
     SetEventCallBack(enumEventUart1Rxd, cbrx);

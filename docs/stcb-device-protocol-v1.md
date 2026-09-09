@@ -1,6 +1,6 @@
 # STC-B Device Protocol v1
 
-最后更新：2026-09-04
+最后更新：2026-09-09
 
 STC-B Device Protocol v1 是 STC-B 固件与 CloudPath Driver Plugin 之间的稳定 UART 契约。它只描述设备事实与控制，不包含药盒业务。
 
@@ -10,14 +10,14 @@ STC-B Device Protocol v1 是 STC-B 固件与 CloudPath Driver Plugin 之间的�
 - 每条消息是一行 UTF-8/ASCII，使用 CRLF 结束；接收端也接受单独 CR 或 LF。
 - 固件命令行最大 70 字节（不含行尾）；命令 ID 最大 11 字节。
 - 一行只能承载一条消息；未知字段必须忽略，以支持同一 major 版本内追加字段。
-- Production Driver 必须逐字节节流发送（当前板级安全值 80ms/byte）；STC-B BSP UART RX 缓冲只有 1 字节，整帧 burst write 会丢字节。
+- Production Driver 必须逐字节节流发送（当前板级安全值 5ms/byte）；STC-B BSP UART RX 缓冲只有 1 字节，整帧 burst write 会丢字节。
 
 ## 2. 启动与版本
 
 固件启动时发送：
 
 ~~~text
-HELLO:stcb-full:v1:proto=1:baud=115200
+HELLO:stcb-full:v1.2:proto=1:baud=115200
 CAPS:clock,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,motor,rtc-sync,diag
 ~~~
 
@@ -82,11 +82,14 @@ CMD:<id>:<verb>[:key=value[,key=value...]]
 | diag | 无 | 返回 DIAG + ACK |
 | sync | time=HHMMSS | 设置板端软件时钟；后续 STATE 提供结果读回 |
 | beep | freq=<Hz>,dur=<10ms units> | 蜂鸣完成后 ACK |
+| song | name=little-star\|birthday\|ode-to-joy | 固件原生音序器连续播放；整首完成后 ACK |
 | led | mask=<00..FF> | LED 位掩码生效后 ACK |
 | display | digits=<8 chars> | 手动显示；字符仅 0-9/- |
 | display | mode=clock | 恢复板端 HH-MM-SS 每秒显示 |
 | motor | speed=<1..255>,steps=<nonzero> | 转动完成后 ACK |
 | motorstop | 无 | 紧急停止 |
+
+`song` 只接受内置曲目 ID，旋律表放 `code` Flash，播放状态放 `xdata`；10ms 拍推进音符，播放期间暂停 UART 事件/STATE 发送以避免与 CCP 蜂鸣冲突。
 
 上电默认数码管为 HH-MM-SS 实时时钟；手动 display digits=... 会切换到手动模式，display mode=clock 恢复时钟模式。
 
@@ -109,5 +112,5 @@ DIAG 用于定位端口电平、焊接和引脚问题，不进入普通 Capabili
 - proto=1 的字段可追加，既有字段与含义不可原地改变。
 - 破坏性变更发布 proto=2；Driver 可并行支持多个 major，但不得猜测。
 - 固件暂时接受 V/B/L/N/T legacy 帧用于 bring-up；legacy ACK 使用 id=0，不具备生产级关联语义。CloudPath 正式闭环只使用 `CMD:<id>:...`。
-- legacy 单字符 `D` 表示**进入 ISP 下载模式**（12 秒倒计时后 `IAP_CONTR=0xE0` 软复位，v1.1 起；v1.0 为 5 秒——stcgal 冷启动可能超过 5s 导致竞争失败），与 `tools/stcflash.py` 的全自动烧录约定一致；诊断只通过 `CMD:<id>:diag` 触发，任何上位机都不得把诊断命令编码成 `D`。
-- legacy `D` 必须以固件实际波特率发送（Full Firmware v1 = 115200）；波特率不匹配时字节被当作噪声丢弃，自动烧录会静默降级为手动。
+- legacy 单字符 `D` 表示**进入 ISP 下载模式**（12 秒倒计时后 `IAP_CONTR=0xE0` 软复位，v1.2 起；v1.0 为 5 秒——stcgal 冷启动可能超过 5s 导致竞争失败），与 `tools/stcflash.py` 的全自动烧录约定一致；诊断只通过 `CMD:<id>:diag` 触发，任何上位机都不得把诊断命令编码成 `D`。
+- legacy `D` 必须以固件实际波特率发送（Full Firmware v1.2 = 115200），并逐字节节流为 `D\r\n`；`tools/stcflash.py` 会等待 `ACK:0:ok` 作为固件接受 D 的证据。波特率不匹配时字节被当作噪声丢弃，自动烧录会降级为手动。

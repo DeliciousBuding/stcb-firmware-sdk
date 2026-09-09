@@ -46,6 +46,14 @@ def _stcgal_cmd(port, hexpath):
     return prefix + ["-p", port, "-P", "stc15", hexpath]
 
 
+def _write_slow(ser, data: bytes, delay_s: float = 0.01) -> None:
+    """逐字节发送：固件 UART RX 只有 1 字节缓冲，115200 下整帧 burst 会丢 CR/LF。"""
+    for byte in data:
+        ser.write(bytes([byte]))
+        ser.flush()
+        time.sleep(delay_s)
+
+
 def try_auto(hexpath, port=DEFAULT_PORT, baud=BAUD):
     """D 命令全自动烧录。True=成功；False=需降级手动。"""
     try:
@@ -56,18 +64,29 @@ def try_auto(hexpath, port=DEFAULT_PORT, baud=BAUD):
     try:
         ser = serial.Serial(port, baud, timeout=0.3)
         time.sleep(0.3)
-        # D 发 3 次间隔 1.5s：REMIND/MISSED 蜂鸣窗口的 CCP 中断风暴会吞 RX 字节
-        #（板级事实：同拍 SetBeep 损坏 UART，2026-09-02 实测 D 单发丢失导致降级）；
-        # 重复 D 只会重置固件倒计时，无副作用。
+        # 端口打开瞬间 CH340 可能向固件灌一个毛刺字节：先发空行把它终止成独立垃圾行
+        _write_slow(ser, b"\r\n")
+        time.sleep(0.2)
+        # D 发 3 次各成一行、间隔 1.5s；逐字节发送避免 1-byte RX 丢 CR/LF。
+        ack_seen = False
         for i in range(3):
-            ser.write(b"D")
+            _write_slow(ser, b"D\r\n")
+            time.sleep(0.15)
+            try:
+                response = ser.read(128)
+            except Exception:
+                response = b""
+            if b"ACK:0:ok" in response:
+                ack_seen = True
+                break
             if i < 2:
                 time.sleep(1.5)
-        # 行结束符：Full Firmware v1 的行协议要看到 CR/LF 才解析（裸 'D' 会停在行缓冲里），
-        # 而 demo/探针固件按单字节生效、且已在上面 3s 内消费掉 'D'，因此补 CRLF 对两者都安全。
-        ser.write(b"\r\n")
         time.sleep(0.2)
         ser.close()
+        if ack_seen:
+            print("[stcflash] D ACK 已确认：固件接受进入 ISP 倒计时", flush=True)
+        else:
+            print("[stcflash] D 未收到 ACK：仍启动 stcgal 尝试接住（可能是旧固件/串口回包丢失）", flush=True)
     except Exception as e:
         print(f"[stcflash] 无法发 D（{e}）")
         return False
