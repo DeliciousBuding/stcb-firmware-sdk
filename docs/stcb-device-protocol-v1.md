@@ -17,8 +17,8 @@ STC-B Device Protocol v1 是 STC-B 固件与 CloudPath Driver Plugin 之间的�
 固件启动时发送：
 
 ~~~text
-HELLO:stcb-full:v1.2:proto=1:baud=115200
-CAPS:clock,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,motor,rtc-sync,diag
+HELLO:stcb-full:v1.3.0:proto=1:baud=115200
+CAPS:clock,date,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,display-pages,motor,rtc-sync,diag
 ~~~
 
 - HELLO 是固件身份、协议 major 和串口参数的权威声明。
@@ -29,7 +29,7 @@ CAPS:clock,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,b
 固件每秒主动发送一条完整状态：
 
 ~~~text
-STATE:seq=00AF,clock=17:20:03,temp=1D6,light=038,nav=3FF,ext0=000,ext1=001,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock
+STATE:seq=00AF,clock=17:20:03,temp=1D6,light=038,nav=3FF,ext0=000,ext1=001,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
 ~~~
 
 - seq：16-bit 大写十六进制序列，回绕允许；用于诊断丢帧，不替代 CloudPath DriverMessage sequence。
@@ -37,7 +37,8 @@ STATE:seq=00AF,clock=17:20:03,temp=1D6,light=038,nav=3FF,ext0=000,ext1=001,hall=
 - temp/light/nav/ext0/ext1：3 位十六进制原始 ADC（0x000–0x3FF）。温度单位换算由 Driver 完成。
 - hall/vib/k1/k2/k3：00 或 01。Hall 直接读取 P1.2 电平，01 表示磁场存在。
 - navkey：00=空闲、01=右、02=下、03=中心、04=左、05=上、06=K3。
-- led：L0-L7 的 8-bit 十六进制 mask；display：clock 或 manual。
+- led：L0-L7 的 8-bit 十六进制 mask；display：clock（板端自动页）或 manual（主机手动 digits/codes）。
+- page：自动页当前值，`clock`、`date`、`sensors`、`io` 或 `version`。v1.3.0 起追加；旧版 v1.2 设备不发送该字段，Driver 必须兼容缺省。
 - motor/beep：free 或 busy。
 
 ## 4. 事件
@@ -84,14 +85,18 @@ CMD:<id>:<verb>[:key=value[,key=value...]]
 | beep | freq=<Hz>,dur=<10ms units> | 蜂鸣完成后 ACK |
 | song | name=little-star\|birthday\|ode-to-joy | 固件原生音序器连续播放；整首完成后 ACK |
 | led | mask=<00..FF> | LED 位掩码生效后 ACK |
-| display | digits=<8 chars> | 手动显示；字符仅 0-9/- |
+| display | digits=<8 chars> | 手动显示；字符支持 0-9/- 及 H/L/S/T/C/B/K/V/P/E/R/A/U/O/N |
 | display | mode=clock | 恢复板端 HH-MM-SS 每秒显示 |
+| display | mode=date | 显示 DS1302 日期 YYYYMMDD |
+| display | mode=sensors | 显示 `TxxxLxxx` 温度/光敏原始 ADC（3 位十六进制） |
+| display | mode=io | 显示 `HxVxK123` 霍尔、振动、K1/K2/K3 电平 |
+| display | mode=version | 显示 `StCb130-`（STC-B v1.3.0） |
 | motor | speed=<1..255>,steps=<nonzero> | 转动完成后 ACK |
 | motorstop | 无 | 紧急停止 |
 
 `song` 只接受内置曲目 ID，旋律表放 `code` Flash，播放状态放 `xdata`；10ms 拍推进音符，播放期间暂停 UART 事件/STATE 发送以避免与 CCP 蜂鸣冲突。
 
-上电默认数码管为 HH-MM-SS 实时时钟；手动 display digits=... 会切换到手动模式，display mode=clock 恢复时钟模式。
+上电默认数码管为 HH-MM-SS 实时时钟；手动 `display digits=...` / `codes=...` 会切换到 manual 模式。K1 短按在五个自动页之间切换，15 秒无操作回到 clock；本地翻页仍发送 `EVENT:key1=press`，不吞并按键事件。主机 `display mode=...` 选页后保持在该页，直到下一条显示命令或本机 K1 操作。
 
 ## 7. TIME_SYNC
 
@@ -113,4 +118,4 @@ DIAG 用于定位端口电平、焊接和引脚问题，不进入普通 Capabili
 - 破坏性变更发布 proto=2；Driver 可并行支持多个 major，但不得猜测。
 - 固件暂时接受 V/B/L/N/T legacy 帧用于 bring-up；legacy ACK 使用 id=0，不具备生产级关联语义。CloudPath 正式闭环只使用 `CMD:<id>:...`。
 - legacy 单字符 `D` 表示**进入 ISP 下载模式**（12 秒倒计时后 `IAP_CONTR=0xE0` 软复位，v1.2 起；v1.0 为 5 秒——stcgal 冷启动可能超过 5s 导致竞争失败），与 `tools/stcflash.py` 的全自动烧录约定一致；诊断只通过 `CMD:<id>:diag` 触发，任何上位机都不得把诊断命令编码成 `D`。
-- legacy `D` 必须以固件实际波特率发送（Full Firmware v1.2 = 115200），并逐字节节流为 `D\r\n`；`tools/stcflash.py` 会等待 `ACK:0:ok` 作为固件接受 D 的证据。波特率不匹配时字节被当作噪声丢弃，自动烧录会降级为手动。
+- legacy `D` 必须以固件实际波特率发送（Full Firmware v1.2/v1.3.0 = 115200），并逐字节节流为 `D\r\n`；`tools/stcflash.py` 会等待 `ACK:0:ok` 作为固件接受 D 的证据。波特率不匹配时字节被当作噪声丢弃，自动烧录会降级为手动。

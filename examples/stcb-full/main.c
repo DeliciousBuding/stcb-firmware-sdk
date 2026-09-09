@@ -31,8 +31,8 @@
 
 code unsigned long SysClock = 11059200;
 
-code char TAG_BOOT[]  = "HELLO:stcb-full:v1.2:proto=1:baud=115200";
-code char TAG_CAPS[]  = "CAPS:clock,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,motor,rtc-sync,diag";
+code char TAG_BOOT[]  = "HELLO:stcb-full:v1.3.0:proto=1:baud=115200";
+code char TAG_CAPS[]  = "CAPS:clock,date,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,display-pages,motor,rtc-sync,diag";
 
 sbit HALL_PIN = P1^2;   /* 原理图定案 HALL -> P1.2 */
 sbit VIB_PIN  = P2^4;   /* 原理图定案 V&P  -> P2.4 */
@@ -45,8 +45,26 @@ code char decode_table[] = {
     0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f,
     0x00,0x08,0x40,0x01,0x76,0x38,
     0x3f|0x80,0x06|0x80,0x5b|0x80,0x4f|0x80,0x66|0x80,
-    0x6d|0x80,0x7d|0x80,0x07|0x80,0x7f|0x80,0x6f|0x80
+    0x6d|0x80,0x7d|0x80,0x07|0x80,0x7f|0x80,0x6f|0x80,
+    0x6d,0x78,0x39,0x7c,0x76,0x1c,0x78,0x73,0x79,0x50,
+    0x77,0x3e,0x5c,0x54
 };
+
+/* decode_table 26+ 是本固件内部字形；wire `codes=` 仍只承诺 0-25。 */
+#define SEG_S 26
+#define SEG_t 27
+#define SEG_C 28
+#define SEG_b 29
+#define SEG_K 30
+#define SEG_V 31
+#define SEG_T 32
+#define SEG_P 33
+#define SEG_E 34
+#define SEG_r 35
+#define SEG_A 36
+#define SEG_U 37
+#define SEG_o 38
+#define SEG_n 39
 #endif
 
 code unsigned int freq_tbl[10] = {0,500,800,1000,1200,1500,2000,2500,3000,0};
@@ -63,6 +81,9 @@ static xdata unsigned char sw_hour = 0x08;
 static xdata unsigned char sw_min = 0x00;
 static xdata unsigned char sw_sec = 0x00;
 static xdata unsigned char sync_buf[6];
+static xdata unsigned char rtc_year = 0x26;
+static xdata unsigned char rtc_month = 0x09;
+static xdata unsigned char rtc_day = 0x02;
 
 /* ---------------- 串口行缓冲 ---------------- */
 char rxbuf;
@@ -81,7 +102,18 @@ static xdata unsigned char motor_ack_pending = 0;
 static xdata char obuf[192];
 static xdata char lbuf[24];
 static xdata unsigned char segbuf[8];
-static xdata unsigned char display_clock = 1;   /* 1=HH-MM-SS 实时钟，0=手动显示 */
+
+#define PAGE_CLOCK   0
+#define PAGE_DATE    1
+#define PAGE_SENSORS 2
+#define PAGE_IO      3
+#define PAGE_VERSION 4
+#define PAGE_COUNT   5
+#define PAGE_TIMEOUT_S 15
+
+static xdata unsigned char display_clock = 1;   /* 1=自动页模式，0=主机手动显示 */
+static xdata unsigned char display_page = 0;    /* PAGE_* */
+static xdata unsigned char page_timer = 0;      /* 0=不自动返回；否则剩余秒数 */
 static xdata unsigned char led_mask = 0;
 static xdata unsigned char isp_countdown = 0; /* 'D' 命令：12s 后软复位进 ISP bootloader */
 static xdata unsigned char song_active = 0;
@@ -169,6 +201,17 @@ static void putkv(char *o, unsigned char *i, char code *k, unsigned char v)
     o[(*i)++] = HC(v >> 4); o[(*i)++] = HC(v);
 }
 
+static char code *page_name(void)
+{
+    switch (display_page) {
+    case PAGE_DATE:    return "date";
+    case PAGE_SENSORS: return "sensors";
+    case PAGE_IO:      return "io";
+    case PAGE_VERSION: return "version";
+    default:           return "clock";
+    }
+}
+
 /* STATE 帧：全量实时快照（hall 为电平语义：1=磁场存在） */
 static void send_state(void)
 {
@@ -210,6 +253,9 @@ static void send_state(void)
     obuf[i++] = hexn(led_mask >> 4); obuf[i++] = hexn(led_mask);
     obuf[i++] = ','; obuf[i++] = 'd'; obuf[i++] = 'i'; obuf[i++] = 's'; obuf[i++] = 'p'; obuf[i++] = 'l'; obuf[i++] = 'a'; obuf[i++] = 'y'; obuf[i++] = '=';
     ms = display_clock ? "clock" : "manual";
+    while (*ms) obuf[i++] = *ms++;
+    obuf[i++] = ','; obuf[i++] = 'p'; obuf[i++] = 'a'; obuf[i++] = 'g'; obuf[i++] = 'e'; obuf[i++] = '=';
+    ms = page_name();
     while (*ms) obuf[i++] = *ms++;
     obuf[i++] = '\r'; obuf[i++] = '\n';
     send_bytes(obuf, i);
@@ -339,17 +385,118 @@ static void show_clock(unsigned char mm, unsigned char ss)
               (unsigned char)(mm >> 4), (unsigned char)(mm & 0x0F), 12,
               (unsigned char)(ss >> 4), (unsigned char)(ss & 0x0F));
 }
+
+static void refresh_date(void)
+{
+    struct_DS1302_RTC t;
+    t = RTC_Read();
+    rtc_year = t.year;
+    rtc_month = t.month;
+    rtc_day = t.day;
+}
+
+static void show_date(void)
+{
+    /* DS1302 年份为 00-99 BCD；本项目按 20xx 显示 YYYYMMDD。 */
+    Seg7Print(2, 0,
+              (unsigned char)(rtc_year >> 4),  (unsigned char)(rtc_year & 0x0F),
+              (unsigned char)(rtc_month >> 4), (unsigned char)(rtc_month & 0x0F),
+              (unsigned char)(rtc_day >> 4),   (unsigned char)(rtc_day & 0x0F));
+}
+
+static void show_sensors(void)
+{
+    struct_ADC a;
+    a = GetADC();
+    /* T + 温度原始 ADC + L + 光敏原始 ADC；均按 3 位十六进制显示，避免 C51 浮点。 */
+    Seg7Print(SEG_T,
+              (unsigned char)((a.Rt >> 8) & 0x0F),
+              (unsigned char)((a.Rt >> 4) & 0x0F),
+              (unsigned char)(a.Rt & 0x0F),
+              15,
+              (unsigned char)((a.Rop >> 8) & 0x0F),
+              (unsigned char)((a.Rop >> 4) & 0x0F),
+              (unsigned char)(a.Rop & 0x0F));
+}
+
+static void show_io(void)
+{
+    /* H=霍尔, V=振动, K123=三个按键当前电平。 */
+    Seg7Print(14, (HALL_PIN == 0) ? 1 : 0,
+              SEG_V, (VIB_PIN == 0) ? 1 : 0,
+              SEG_K,
+              (KEY1_PIN == 0) ? 1 : 0,
+              (KEY2_PIN == 0) ? 1 : 0,
+              key3_state);
+}
+
+static void show_version(void)
+{
+    /* StCb130- = STC-B v1.3.0；末位短横仅用于填满 8 位。 */
+    Seg7Print(SEG_S, SEG_t, SEG_C, SEG_b, 1, 3, 0, 12);
+}
+
+static void show_page(void)
+{
+    switch (display_page) {
+    case PAGE_DATE:    refresh_date(); show_date(); break;
+    case PAGE_SENSORS: show_sensors(); break;
+    case PAGE_IO:      show_io(); break;
+    case PAGE_VERSION: show_version(); break;
+    default:           show_clock(sw_min, sw_sec); break;
+    }
+}
+
+static void next_display_page(void)
+{
+    if (!display_clock) {
+        display_clock = 1;
+        display_page = PAGE_DATE;
+    } else {
+        display_page++;
+        if (display_page >= PAGE_COUNT) display_page = PAGE_CLOCK;
+    }
+    page_timer = PAGE_TIMEOUT_S;
+    show_page();
+}
+
+static unsigned char char_seg(unsigned char c)
+{
+    if (c >= '0' && c <= '9') return (unsigned char)(c - '0');
+    if (c == '-') return 12;
+    if (c == ' ') return 10;
+    if (c == 'H') return 14;
+    if (c == 'L') return 15;
+    switch (c) {
+    case 'S': case 's': return SEG_S;
+    case 'T': case 't': return SEG_T;
+    case 'C': case 'c': return SEG_C;
+    case 'B': case 'b': return SEG_b;
+    case 'K': case 'k': return SEG_K;
+    case 'V': case 'v': return SEG_V;
+    case 'P': case 'p': return SEG_P;
+    case 'E': case 'e': return SEG_E;
+    case 'R': case 'r': return SEG_r;
+    case 'A': case 'a': return SEG_A;
+    case 'U': case 'u': return SEG_U;
+    case 'O': case 'o': return SEG_o;
+    case 'N': case 'n': return SEG_n;
+    default: return 0xFF;
+    }
+}
+
 static unsigned char do_display(char *s, unsigned char a, unsigned char b)
 {
     unsigned char i, d;
     if ((unsigned char)(b - a) != 8) return 1;
     for (i = 0; i < 8; i++) {
-        d = (unsigned char)s[a + i];
-        if (d >= '0' && d <= '9') segbuf[i] = (unsigned char)(d - '0');
-        else if (d == '-') segbuf[i] = 12;
-        else return 1;
+        d = char_seg((unsigned char)s[a + i]);
+        if (d == 0xFF) return 1;
+        segbuf[i] = d;
     }
     display_clock = 0;
+    display_page = PAGE_CLOCK;
+    page_timer = 0;
     Seg7Print(segbuf[0], segbuf[1], segbuf[2], segbuf[3], segbuf[4], segbuf[5], segbuf[6], segbuf[7]);
     return 0;
 }
@@ -365,6 +512,8 @@ static unsigned char do_display_codes(char *s, unsigned char a, unsigned char b)
         segbuf[i] = d;
     }
     display_clock = 0;
+    display_page = PAGE_CLOCK;
+    page_timer = 0;
     Seg7Print(segbuf[0], segbuf[1], segbuf[2], segbuf[3], segbuf[4], segbuf[5], segbuf[6], segbuf[7]);
     return 0;
 }
@@ -411,9 +560,17 @@ static unsigned char exec_cmd(char *verb, unsigned char vn, char *args, unsigned
         return do_led(v1);
     }
     if (vn == 7 && verb[0]=='d' && verb[1]=='i' && verb[2]=='s' && verb[3]=='p' && verb[4]=='l' && verb[5]=='a' && verb[6]=='y') {
-        if (arg_span(args, an, "mode", &va, &vb) && (unsigned char)(vb - va) == 5 &&
-            args[va]=='c' && args[va+1]=='l' && args[va+2]=='o' && args[va+3]=='c' && args[va+4]=='k') {
-            display_clock = 1; return 0;
+        if (arg_span(args, an, "mode", &va, &vb)) {
+            display_clock = 1;
+            page_timer = 0;             /* 主机显式选页不自动返回 */
+            if (span_eq(args, va, vb, "clock")) display_page = PAGE_CLOCK;
+            else if (span_eq(args, va, vb, "date")) display_page = PAGE_DATE;
+            else if (span_eq(args, va, vb, "sensors")) display_page = PAGE_SENSORS;
+            else if (span_eq(args, va, vb, "io")) display_page = PAGE_IO;
+            else if (span_eq(args, va, vb, "version")) display_page = PAGE_VERSION;
+            else return 1;
+            show_page();
+            return 0;
         }
         if (arg_span(args, an, "codes", &va, &vb)) return do_display_codes(args, va, vb);
         if (!arg_span(args, an, "digits", &va, &vb)) return 1;
@@ -573,7 +730,11 @@ void cb100ms(void)
     lvl = (HALL_PIN == 0) ? 1 : 0;
     if (lvl != prev_hall) { ev_hall = lvl ? 1 : 2; prev_hall = lvl; }
     lvl = (KEY1_PIN == 0) ? 1 : 0;
-    if (lvl != prev_k1) { ev_key = (unsigned char)(1 | (lvl ? 0x10 : 0x20)); prev_k1 = lvl; }
+    if (lvl != prev_k1) {
+        ev_key = (unsigned char)(1 | (lvl ? 0x10 : 0x20));
+        if (lvl) next_display_page();   /* 本地翻页不影响原有 key1 EVENT */
+        prev_k1 = lvl;
+    }
     lvl = (KEY2_PIN == 0) ? 1 : 0;
     if (lvl != prev_k2) { ev_key = (unsigned char)(2 | (lvl ? 0x10 : 0x20)); prev_k2 = lvl; }
     /* 振动是短脉冲，100mS 电平采样会漏，保留 BSP 的锁存边沿 API。 */
@@ -648,7 +809,13 @@ void cb1s(void)
         sw_min = bcd_inc(sw_min, 0x59);
         if (sw_min == 0x00) sw_hour = bcd_inc(sw_hour, 0x23);
     }
-    if (display_clock) show_clock(sw_min, sw_sec);
+    if (display_clock) {
+        if (display_page != PAGE_CLOCK && page_timer != 0) {
+            page_timer--;
+            if (page_timer == 0) display_page = PAGE_CLOCK;
+        }
+        show_page();
+    }
     want_state = 1;
 
     /* ISP 倒计时：给上位机时间启动 stcgal 握手，到点软复位进 bootloader。
@@ -695,6 +862,9 @@ void main(void)
     sw_hour = hour_from_chip(t.hour);
     sw_min = t.minute;
     sw_sec = t.second;
+    rtc_year = t.year;
+    rtc_month = t.month;
+    rtc_day = t.day;
 
     SetUart1Rxd(&rxbuf, 1, 0, 0);
     SetEventCallBack(enumEventSys10mS, cb10ms);

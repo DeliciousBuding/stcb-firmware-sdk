@@ -16,7 +16,7 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 | `BSP/` | 板级驱动库（`inc/*.h` 接口 + `STCBSP_V3.6.LIB` Keil C51 静态库） |
 | `tools/` | 设备侧工具链：`serlink.py`(串口基建/STC_PORT/NUL清洗) · `stcflash.py`(烧录SSOT) · `serial-console.py` · `serial-log.py` |
 | `examples/sensor-probe/` | 2KB legacy 探针（V/B/L/N/T），只用于兼容/bring-up |
-| `examples/stcb-full/` | CloudPath reference firmware v1.2：完整板载能力 + 原生歌曲音序器 + Device Protocol v1 + 真实 ACK/ERROR |
+| `examples/stcb-full/` | CloudPath reference firmware v1.3.0：完整板载能力 + 五页数码管 + 原生歌曲音序器 + Device Protocol v1 + 真实 ACK/ERROR |
 
 
 ## 生态定位
