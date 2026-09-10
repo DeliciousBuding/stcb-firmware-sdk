@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """STC-B 传感器+执行器探针固件 编译/烧录：python build.py [--demo?no] [--flash|-F]
-本探针无药盒调度逻辑，单模块 main.c，绕开 demo 药盒 build 的 restricted-Keil 2KB 限制。
+本探针无药盒调度逻辑，单模块 main.c；起源是绕开当时 demo 药盒 build 的 restricted-Keil 2KB 限制（该限制 2026-09-04 已随授权版 C51 V9.61 解除，本探针保留为 v2 载体）。
 默认只编译；--flash/-F 由 Captain 在安全时段统一执行，勿随意烧录（会打断 edge/plugin 链路）。
 """
-import argparse, os, re, subprocess, sys
+import argparse, os, pathlib, re, subprocess, sys
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-KEIL_BIN = r"C:\Keil\C51\BIN"
-C51 = os.path.join(KEIL_BIN, "C51.exe")
-BL51 = os.path.join(KEIL_BIN, "BL51.exe")
-OH51 = os.path.join(KEIL_BIN, "OH51.exe")
-STC_INC = r"C:\Keil\C51\INC\STC"
-COM_PORT = "COM3"
+KEIL_HOME = pathlib.Path(os.environ.get("KEIL_HOME", r"C:\Keil_v5"))
+KEIL_BIN = KEIL_HOME / "C51" / "BIN"
+C51 = str(KEIL_BIN / "C51.exe")
+BL51 = str(KEIL_BIN / "BL51.exe")
+OH51 = str(KEIL_BIN / "OH51.exe")
+STC_INC = str(KEIL_HOME / "C51" / "INC" / "STC")
+COM_PORT = os.environ.get("STC_PORT", "COM3")
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 BSP_INC = os.path.abspath(os.path.join(BASE, "..", "..", "BSP", "inc"))
