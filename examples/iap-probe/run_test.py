@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: Apache-2.0
 """iap-probe 测试器：向板上 iap-probe 固件发 I 命令，收 IAP:RESULT:* 并断言。
 
 用法:

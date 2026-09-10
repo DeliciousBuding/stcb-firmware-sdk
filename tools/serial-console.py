@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: Apache-2.0
 """交互式串口控制台（薄壳，线路基建在 serlink.py）
 用法: python serial-console.py [COM口] [波特率] [日志文件路径]   # COM 缺省=env STC_PORT 或 COM3
 行为: 收——板端输出全部时间戳追加到 stdout+日志文件；

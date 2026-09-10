@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: Apache-2.0
 """常驻串口日志器（薄壳，线路基建在 serlink.py）
 用法: python serial-log.py [COM口] [波特率] [日志文件路径]   # COM 缺省=env STC_PORT 或 COM3
 行为: 每行时间戳追加写+即时 flush，直到 Ctrl+C 或端口死亡。

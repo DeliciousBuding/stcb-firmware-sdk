@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: Apache-2.0
 """serlink — 仓库级串口线路基建（serial-console / serial-log / debug-run / stcflash 共用）
 
 调试链路第一性分层：

@@ -33,4 +33,4 @@ control platform. The chain is **board → SDK → cloud**: device firmware (thi
 
 - Includes: **interface headers + BSP static library + tooling + reference firmware** (interface-level open source; linkable & extendable).
 - Source-level open source would require the BSP `.c` sources (not currently included).
-- License: MIT (see `LICENSE`).
+- License: Apache License 2.0 (see `LICENSE`). BSP/teaching-material attribution and third-party boundaries are recorded in `NOTICE`.

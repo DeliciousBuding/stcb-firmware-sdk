@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
 /* STC-B IAP 自编程探针（iap-probe v0.1）
  *
  * 目的：在真板上证明 IAP15F2K61S2 能在「用户程序区」擦 / 写 / 读自己的 Flash。

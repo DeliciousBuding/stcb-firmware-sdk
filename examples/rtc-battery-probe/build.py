@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 r"""Build/flash the STC-B RTC battery ablation probe.
 
 Usage: python build.py [--flash|-f] [--flash-only|-F]

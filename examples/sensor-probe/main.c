@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
 // STC-B 传感器+执行器探针固件（sensor-probe）
 // 用途：作为 cloudpath stcb 适配器 v2 线协议的**真实载体**（V/B/L/N/T）。
 // 无药盒调度逻辑，独立目录（参照 diag-rtc 模式），绕开 restricted-Keil 2KB 限制。

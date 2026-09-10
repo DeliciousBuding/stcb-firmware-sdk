@@ -1,7 +1,7 @@
 # stcb-firmware-sdk
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![CI](https://github.com/DeliciousBuding/stcb-firmware-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/DeliciousBuding/stcb-firmware-sdk/actions)
 [![Platform](https://img.shields.io/badge/firmware-Windows%20%2B%20Keil%20C51-informational)]()
 
@@ -39,4 +39,4 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 
 - 已含：**接口头文件 + BSP 静态库 + 工具链 + 参考固件**（接口级开源，可直接链接与二次开发）。
 - 若需源码级开源，需补 BSP 的 `.c` 源（当前仓库未含）。
-- License: MIT（见 `LICENSE`）。
+- License: Apache License 2.0（见 `LICENSE`）。BSP/教学素材 attribution 与第三方边界见 `NOTICE`。

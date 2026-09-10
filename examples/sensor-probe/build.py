@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """STC-B 传感器+执行器探针固件 编译/烧录：python build.py [--flash|-f] [--flash-only|-F]
 本探针无药盒调度逻辑，单模块 main.c；起源是绕开当时 demo 药盒 build 的 restricted-Keil 2KB 限制（该限制 2026-09-04 已随授权版 C51 V9.61 解除，本探针保留为 v2 载体）。
 默认只编译；--flash 会打断正在使用该板的上位机，执行前先释放串口。

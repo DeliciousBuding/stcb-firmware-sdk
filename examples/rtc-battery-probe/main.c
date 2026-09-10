@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
 /* RTC 纽扣电池消融探针（rtc-battery-probe）
  *
  * 一次性回答一个问题：**STC-B 拔掉 USB 之后，DS1302 的钟还走不走？**

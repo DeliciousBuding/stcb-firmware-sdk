@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
 // STC-B Full Firmware v1 (stcb-full)
 // CloudPath stcb 适配器的真实硬件载体。协议 v1（冻结）：见同目录 PROTOCOL.md。
 //

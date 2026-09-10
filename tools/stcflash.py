@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: Apache-2.0
 """stcflash — 烧录 SSOT（各 build.py / debug-run.py 共用）
 
 流程：释放 COM 口 → 板上有 D 命令固件则全自动（发 D → 固件 5/12s 后 IAP_CONTR=0xE0

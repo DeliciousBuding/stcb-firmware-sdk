@@ -1,0 +1,29 @@
+stcb-firmware-sdk
+Copyright 2026 DeliciousBuding and contributors
+
+This product is licensed under the Apache License, Version 2.0. See LICENSE
+for the complete license text.
+
+Project ownership
+-----------------
+Unless a file explicitly states otherwise, the original project code,
+documentation, build tooling, and reference firmware in this repository are
+copyright 2026 DeliciousBuding and contributors.
+
+BSP and teaching-material attribution
+-------------------------------------
+This repository includes STC-B board support interfaces (BSP/inc/*), the
+precompiled STCBSP_V3.6.LIB library, and board definitions derived from STC-B
+learning-board teaching materials. Redistribution authorization for those
+materials has been confirmed by the repository owner. Original copyright,
+author, and attribution notices are retained where present and are not
+rewritten by this project. These components are distributed as part of this
+repository under the Apache License, Version 2.0, to the extent permitted by
+the applicable authorization.
+
+Third-party boundaries
+----------------------
+Keil C51/BL51/OH51, STC ISP software, stcgal, pyserial, and other external
+build or runtime dependencies are not included in this repository. They remain
+subject to their own licenses and terms. Product names and trademarks belong
+to their respective owners.
