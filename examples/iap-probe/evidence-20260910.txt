@@ -1,0 +1,50 @@
+13:19:10 [run] send I -> COM3@115200
+13:19:10 IAP:START:addr=E000:section=112:512bytes
+13:19:10 IAP:RESULT:step=read_pre state=blank nonff=0
+13:19:10 IAP:RESULT:step=program state=ok
+13:19:10 IAP:RESULT:step=read_post state=match data=5AA500FF112233445566778899AABBCC
+13:19:10 IAP:RESULT:step=erase state=ok
+13:19:10 IAP:RESULT:step=read_after_erase state=blank nonff=0
+13:19:10 IAP:RESULT:step=cmdfail state=raised addr=F400
+13:19:10 IAP:RESULT:step=total state=PASS
+13:19:10 [info] IAP:RESULT:step=cmdfail state=raised addr=F400
+13:19:10 [PASS] IAP 自写能力已在真板证实（读/写/擦全链路 + 扇区擦除后全空白）
+13:19:23 [run] send I -> COM3@115200
+13:19:23 IAP:START:addr=E000:section=112:512bytes
+13:19:23 IAP:RESULT:step=read_pre state=blank nonff=0
+13:19:23 IAP:RESULT:step=program state=ok
+13:19:23 IAP:RESULT:step=read_post state=match data=5AA500FF112233445566778899AABBCC
+13:19:23 IAP:RESULT:step=erase state=ok
+13:19:23 IAP:RESULT:step=read_after_erase state=blank nonff=0
+13:19:23 IAP:RESULT:step=cmdfail state=raised addr=F400
+13:19:23 IAP:RESULT:step=total state=PASS
+13:19:23 [info] IAP:RESULT:step=cmdfail state=raised addr=F400
+13:19:23 [PASS] IAP 自写能力已在真板证实（读/写/擦全链路 + 扇区擦除后全空白）
+13:25:38 [run] send I -> COM3@115200
+13:25:39 STATE:seq=014C,clock=13:25:42,temp=1D3,light=02D,nav=3FF,ext0=05C,ext1=026,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:40 STATE:seq=014D,clock=13:25:43,temp=1D4,light=02E,nav=3FF,ext0=05D,ext1=016,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:41 STATE:seq=014E,clock=13:25:44,temp=1D2,light=02E,nav=3FF,ext0=05D,ext1=017,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:42 STATE:seq=014F,clock=13:25:45,temp=1D2,light=02D,nav=3FF,ext0=00D,ext1=016,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:43 STATE:seq=0150,clock=13:25:46,temp=1D5,light=02E,nav=3FF,ext0=00D,ext1=006,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:44 STATE:seq=0151,clock=13:25:47,temp=1D5,light=02D,nav=3FF,ext0=00C,ext1=007,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:45 STATE:seq=0152,clock=13:25:48,temp=1D2,light=02D,nav=3FF,ext0=0AD,ext1=007,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:46 STATE:seq=0153,clock=13:25:49,temp=1D3,light=02E,nav=3FF,ext0=0AD,ext1=026,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:47 STATE:seq=0154,clock=13:25:50,temp=1D3,light=02E,nav=3FF,ext0=0AE,ext1=026,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:48 STATE:seq=0155,clock=13:25:51,temp=1D3,light=02D,nav=3FF,ext0=05D,ext1=026,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:49 STATE:seq=0156,clock=13:25:52,temp=1D5,light=02E,nav=3FF,ext0=05D,ext1=017,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:50 STATE:seq=0157,clock=13:25:53,temp=1D3,light=02E,nav=3FF,ext0=05C,ext1=017,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:51 STATE:seq=0158,clock=13:25:54,temp=1D4,light=02E,nav=3FF,ext0=00D,ext1=017,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:52 STATE:seq=0159,clock=13:25:55,temp=1D4,light=02E,nav=3FF,ext0=00D,ext1=008,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:53 STATE:seq=015A,clock=13:25:56,temp=1D4,light=02E,nav=3FF,ext0=00D,ext1=007,hall=00,vib=00,k1=00,k2=00,k3=00,navkey=00,motor=free,beep=free,led=00,display=clock,page=clock
+13:25:53 [FAIL] 未收到 IAP:RESULT:step=total —— 板上不是 iap-probe 固件？串口被占用？
+13:26:40 [run] send I -> COM3@115200
+13:26:41 IAP:START:addr=E000:section=112:512bytes
+13:26:41 IAP:RESULT:step=read_pre state=blank nonff=0
+13:26:41 IAP:RESULT:step=program state=ok
+13:26:41 IAP:RESULT:step=read_post state=match data=5AA500FF112233445566778899AABBCC
+13:26:41 IAP:RESULT:step=erase state=ok
+13:26:41 IAP:RESULT:step=read_after_erase state=blank nonff=0
+13:26:41 IAP:RESULT:step=cmdfail state=raised addr=F400
+13:26:41 IAP:RESULT:step=total state=PASS
+13:26:41 [info] IAP:RESULT:step=cmdfail state=raised addr=F400
+13:26:41 [PASS] IAP 自写能力已在真板证实（读/写/擦全链路 + 扇区擦除后全空白）
