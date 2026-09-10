@@ -9,7 +9,6 @@ Beep用于控制“STC-B学习板”上无源蜂鸣器的发声。Beep模块共�
 	(3)  GetBeepStatus(void):	获取Beep当前状态,enmuBeepFree:空闲, enumBeepBusy ,正在发音
 	(4)  Beep模块使用了STC内部CCP模块1通道
 
-编写：徐成（电话18008400450）   2021年3月3日设计，2021年3月26日更新
 */
 
 #ifndef _beep_H_			

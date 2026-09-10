@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![CI](https://github.com/DeliciousBuding/stcb-firmware-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/DeliciousBuding/stcb-firmware-sdk/actions)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%2F%20Linux-informational)]()
+[![Platform](https://img.shields.io/badge/firmware-Windows%20%2B%20Keil%20C51-informational)]()
 
 
 STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设备固件、课程工程与
@@ -29,8 +29,10 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 
 ## 使用
 
-- 依赖：Keil C51（`C51/BL51/OH51`）编译；`KEIL_HOME` 覆盖默认安装目录 `C:\Keil_v5`，串口默认 `COM3`（env `STC_PORT` 覆盖）。
-- 编译完整固件：`cd examples/stcb-full && python build.py`（`--flash` 委托 `tools/stcflash.py`）。
+- 固件构建/烧录当前面向 Windows + Keil C51（`C51/BL51/OH51`）；Python 串口工具本身可跨平台运行。
+- `KEIL_HOME` 覆盖默认安装目录 `C:\Keil_v5`；串口默认 `COM3`，可用 env `STC_PORT` 覆盖。
+- Python 依赖：`python -m pip install pyserial stcgal`。
+- 编译完整固件：`cd examples/stcb-full && python build.py`（`--flash` 委托 `tools/stcflash.py`；无法软复位时需要按板载 Reset）。
 - 所有 `build.py` 都通过 `KEIL_HOME` 查找工具链，不需要修改源码中的机器路径。
 
 ## 开源范围

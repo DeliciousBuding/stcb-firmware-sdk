@@ -1,12 +1,12 @@
 # 构建产物
-*.hex
-*.obj
-*.lst
-*.m51
-*.lnp
+*.[Hh][Ee][Xx]
+*.[Oo][Bb][Jj]
+*.[Ll][Ss][Tt]
+*.[Mm]51
+*.[Ll][Nn][Pp]
 MAIN
 *.build
-*.plg
+*.[Pp][Ll][Gg]
 
 # Python
 __pycache__/

@@ -17,8 +17,10 @@ A reusable, open-source lower layer shared by device firmware, course projects, 
 
 ## Usage
 
-- Dependencies: Keil C51 (`C51/BL51/OH51`); `KEIL_HOME` overrides the default `C:\Keil_v5` install, serial default `COM3` (override via `STC_PORT`).
-- Build the full firmware: `cd examples/stcb-full && python build.py` (`--flash` delegates to `tools/stcflash.py`).
+- Firmware build/flash currently targets Windows with Keil C51 (`C51/BL51/OH51`); the Python serial tools are portable.
+- `KEIL_HOME` overrides the default `C:\Keil_v5` install; serial defaults to `COM3` and can be overridden with `STC_PORT`.
+- Python dependencies: `python -m pip install pyserial stcgal`.
+- Build the full firmware: `cd examples/stcb-full && python build.py` (`--flash` delegates to `tools/stcflash.py`; press board Reset if software reset is unavailable).
 - Every `build.py` locates the toolchain through `KEIL_HOME`; no machine-specific source edits are required.
 
 ## Ecosystem

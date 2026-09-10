@@ -19,7 +19,6 @@ StepMotor用于STC-B板控制步进电机。共提供1个驱动函数、3个应�
 									     enumStepMotorBusy,忙（正在转动）
 											 enumSetStepMotorFail：调用失败（步进电机名不在指定范围）
 
-编写：徐成（电话18008400450）   2021年4月16日设计，2021年4月18日更新
 */
 
 #ifndef _StepMotor_H_			

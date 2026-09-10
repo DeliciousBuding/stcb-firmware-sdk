@@ -13,7 +13,6 @@ displayer用于控制“STC-B学习板”上8个7段数码管（Seg7）和8个�
 			
   (4) LedPrint(char led_val)：控制8个指示灯开关。参数light_val的8个bit位对应8个指示灯的开关，“1”——指示灯“亮”									 
 
-编写：徐成（电话18008400450）   2021年2月26日设计，2021年3月15日更新
 */
 
 #ifndef _displayer_H_
