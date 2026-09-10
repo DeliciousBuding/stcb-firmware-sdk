@@ -1,13 +1,13 @@
-# STC-B Full Firmware v1.3.0
+# STC-B Full Firmware v1.3.1
 
-最后更新：2026-09-09
+最后更新：2026-09-10
 
 CloudPath 的 STC-B reference firmware。它是板载硬件固件，不包含药盒业务；线协议见 [STC-B Device Protocol v1](../../docs/stcb-device-protocol-v1.md)。
 
 ## 板载能力
 
 - RTC / HH-MM-SS 数码管实时时钟；K1 短按切换 `clock → date → sensors → io → version` 五个信息页，15 秒无操作回到时钟
-- 日期页 `YYYYMMDD`（如 `20260909`）；传感器页 `TxxxLxxx` 显示温度/光敏原始 ADC；I/O 页 `HxVxK123` 显示霍尔、振动、三键电平；版本页 `StCb130-`
+- 日期页 `YYYYMMDD`（如 `20260909`）；传感器页 `TxxxLxxx` 显示温度/光敏原始 ADC；I/O 页 `HxVxK123` 显示霍尔、振动、三键电平；版本页 `StCb131-`
 - Temperature、Illuminance、KN navigation ADC、EXT0/EXT1 ADC
 - Hall 当前电平 + close/away 事件
 - Vibration 当前电平 + quake 事件

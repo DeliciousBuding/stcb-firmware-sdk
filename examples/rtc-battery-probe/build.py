@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -37,7 +38,7 @@ def build() -> bool:
         cwd=BASE, capture_output=True, timeout=40,
     )
     output = result.stdout.decode("latin-1", errors="replace")
-    if "0 ERROR" not in output:
+    if not re.search(r"\b0\s+ERROR\(S\)", output, re.IGNORECASE):
         print("[FAIL] C51")
         print("\n".join(line for line in output.splitlines() if "ERROR" in line.upper()))
         return False
@@ -49,8 +50,10 @@ def build() -> bool:
         print("[FAIL] BL51")
         print(result.stdout.decode("latin-1", errors="replace")[-500:])
         return False
-    subprocess.run([OH51, str(BASE / "main")], cwd=BASE, capture_output=True, timeout=40)
     hex_path = BASE / "main.hex"
+    hex_path.unlink(missing_ok=True)
+    subprocess.run([OH51, str(BASE / "main")], cwd=BASE, capture_output=True, timeout=40)
+
     if not hex_path.exists():
         print("[FAIL] OH51: main.hex not produced")
         return False

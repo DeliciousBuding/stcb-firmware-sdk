@@ -31,7 +31,7 @@
 
 code unsigned long SysClock = 11059200;
 
-code char TAG_BOOT[]  = "HELLO:stcb-full:v1.3.0:proto=1:baud=115200";
+code char TAG_BOOT[]  = "HELLO:stcb-full:v1.3.1:proto=1:baud=115200";
 code char TAG_CAPS[]  = "CAPS:clock,date,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,display-pages,motor,rtc-sync,diag";
 
 sbit HALL_PIN = P1^2;   /* 原理图定案 HALL -> P1.2 */
@@ -155,6 +155,14 @@ static unsigned char bcd_inc(unsigned char v, unsigned char maxv)
     if ((v & 0x0F) > 0x09) v += 0x06;
     if (v > maxv) v = 0x00;
     return v;
+}
+static unsigned char bcd_valid(unsigned char v, unsigned char maxv)
+{
+    return ((v & 0x0F) <= 0x09) && ((v >> 4) <= 0x09) && v <= maxv;
+}
+static unsigned char bcd_nonzero_valid(unsigned char v, unsigned char maxv)
+{
+    return v != 0x00 && bcd_valid(v, maxv);
 }
 static unsigned char hour_from_chip(unsigned char chiph)
 {
@@ -322,6 +330,21 @@ static unsigned char arg_span(char *s, unsigned char an, char code *k, unsigned 
     return 0;
 }
 
+/* 两位十进制字段校验；失败即拒绝，不把截断/非法 sync 写入软件时钟。 */
+static unsigned char dec_pair_valid(char *s, unsigned char a, unsigned char maxv)
+{
+    unsigned char v;
+    if (s[a] < '0' || s[a] > '9' || s[a + 1] < '0' || s[a + 1] > '9') return 0;
+    v = (unsigned char)((s[a] - '0') * 10 + (s[a + 1] - '0'));
+    return (v <= maxv) ? 1 : 0;
+}
+static unsigned char sync_span_valid(char *s, unsigned char a, unsigned char n)
+{
+    if (n == 4) return (dec_pair_valid(s, a, 23) && dec_pair_valid(s, (unsigned char)(a + 2), 59));
+    if (n == 6) return (dec_pair_valid(s, a, 23) && dec_pair_valid(s, (unsigned char)(a + 2), 59) && dec_pair_valid(s, (unsigned char)(a + 4), 59));
+    return 0;
+}
+
 /* ---------------- 执行器 ---------------- */
 static unsigned char do_beep(unsigned int freq, unsigned int dur10ms)
 {
@@ -432,8 +455,8 @@ static void show_io(void)
 
 static void show_version(void)
 {
-    /* StCb130- = STC-B v1.3.0；末位短横仅用于填满 8 位。 */
-    Seg7Print(SEG_S, SEG_t, SEG_C, SEG_b, 1, 3, 0, 12);
+    /* StCb131- = STC-B v1.3.1；末位短横仅用于填满 8 位。 */
+    Seg7Print(SEG_S, SEG_t, SEG_C, SEG_b, 1, 3, 1, 12);
 }
 
 static void show_page(void)
@@ -539,24 +562,27 @@ static unsigned char exec_cmd(char *verb, unsigned char vn, char *args, unsigned
     if (vn == 4 && verb[0]=='d' && verb[1]=='i' && verb[2]=='a' && verb[3]=='g') { send_diag(); return 0; }
     if (vn == 4 && verb[0]=='s' && verb[1]=='o' && verb[2]=='n' && verb[3]=='g') { return do_song(args, an); }
     if (vn == 4 && verb[0]=='b' && verb[1]=='e' && verb[2]=='e' && verb[3]=='p') {
-        v1 = 1000; v2 = 20;
-        if (arg_span(args, an, "freq", &va, &vb)) v1 = parse_int(args, va, vb, &ok);
-        if (arg_span(args, an, "dur",  &va, &vb)) v2 = parse_int(args, va, vb, &ok);
+        unsigned char has_freq, has_dur;
+        has_freq = arg_span(args, an, "freq", &va, &vb);
+        if (!has_freq) return 1;
+        v1 = parse_int(args, va, vb, &ok);
+        if (!ok) return 1;
+        has_dur = arg_span(args, an, "dur", &va, &vb);
+        if (!has_dur) return 1;
+        v2 = parse_int(args, va, vb, &ok);
+        if (!ok) return 1;
         return do_beep(v1, v2);
     }
     if (vn == 3 && verb[0]=='l' && verb[1]=='e' && verb[2]=='d') {
-        v1 = 0;
-        if (arg_span(args, an, "mask", &va, &vb)) {
-            unsigned char i, h = 0;
-            for (i = va; i < vb; i++) {
-                char c = args[i]; h <<= 4;
-                if (c >= '0' && c <= '9') h |= (unsigned char)(c - '0');
-                else if (c >= 'a' && c <= 'f') h |= (unsigned char)(c - 'a' + 10);
-                else if (c >= 'A' && c <= 'F') h |= (unsigned char)(c - 'A' + 10);
-                else return 1;
-            }
-            v1 = h;
+        unsigned char i, h = 0;
+        if (!arg_span(args, an, "mask", &va, &vb)) return 1;
+        if ((unsigned char)(vb - va) != 2) return 1;
+        for (i = va; i < vb; i++) {
+            unsigned char c = hexval(args[i]);
+            if (c == 0xFF) return 1;
+            h = (unsigned char)((h << 4) | c);
         }
+        v1 = h;
         return do_led(v1);
     }
     if (vn == 7 && verb[0]=='d' && verb[1]=='i' && verb[2]=='s' && verb[3]=='p' && verb[4]=='l' && verb[5]=='a' && verb[6]=='y') {
@@ -577,9 +603,15 @@ static unsigned char exec_cmd(char *verb, unsigned char vn, char *args, unsigned
         return do_display(args, va, vb);
     }
     if (vn == 5 && verb[0]=='m' && verb[1]=='o' && verb[2]=='t' && verb[3]=='o' && verb[4]=='r') {
-        v1 = 100; v2 = 200;
-        if (arg_span(args, an, "speed", &va, &vb)) v1 = parse_int(args, va, vb, &ok);
-        if (arg_span(args, an, "steps", &va, &vb)) v2 = parse_int(args, va, vb, &ok);
+        unsigned char has_speed, has_steps;
+        has_speed = arg_span(args, an, "speed", &va, &vb);
+        if (!has_speed) return 1;
+        v1 = parse_int(args, va, vb, &ok);
+        if (!ok) return 1;
+        has_steps = arg_span(args, an, "steps", &va, &vb);
+        if (!has_steps) return 1;
+        v2 = parse_int(args, va, vb, &ok);
+        if (!ok || v2 == 0 || v2 > 32767) return 1;
         return do_motor(v1, (int)v2);
     }
     if (vn == 9 && verb[0]=='m' && verb[1]=='o' && verb[2]=='t' && verb[3]=='o' && verb[4]=='r' &&
@@ -587,11 +619,11 @@ static unsigned char exec_cmd(char *verb, unsigned char vn, char *args, unsigned
         EmStop(enumStepMotor1); motor_ack_pending = 0; return 0;
     }
     if (vn == 4 && verb[0]=='s' && verb[1]=='y' && verb[2]=='n' && verb[3]=='c') {
-        if (arg_span(args, an, "time", &va, &vb) && (unsigned char)(vb - va) == 6) {
+        if (arg_span(args, an, "time", &va, &vb) && (unsigned char)(vb - va) == 6 && sync_span_valid(args, va, 6)) {
             sync_buf[0]=args[va]; sync_buf[1]=args[va+1]; sync_buf[2]=args[va+2]; sync_buf[3]=args[va+3];
             sync_buf[4]=args[va+4]; sync_buf[5]=args[va+5]; apply_sync(); want_state = 1; return 0;
         }
-        if (arg_span(args, an, "hhmm", &va, &vb) && (unsigned char)(vb - va) == 4) {
+        if (arg_span(args, an, "hhmm", &va, &vb) && (unsigned char)(vb - va) == 4 && sync_span_valid(args, va, 4)) {
             sync_buf[0]=args[va]; sync_buf[1]=args[va+1]; sync_buf[2]=args[va+2]; sync_buf[3]=args[va+3];
             sync_buf[4]='0'; sync_buf[5]='0'; apply_sync(); want_state = 1; return 0;
         }
@@ -831,7 +863,7 @@ void cb1s(void)
 
 void main(void)
 {
-    struct_DS1302_RTC t, init_time;
+    struct_DS1302_RTC t;
 
     DisplayerInit();
     SetDisplayerArea(0, 7);
@@ -849,22 +881,21 @@ void main(void)
     P1M1 |= 0x04;
     P1M0 &= ~0x04;
 
-    init_time.second = 0x00;
-    init_time.minute = 0x00;
-    init_time.hour   = 0x08;
-    init_time.day    = 0x02;
-    init_time.month  = 0x09;
-    init_time.week   = 0x03;
-    init_time.year   = 0x26;
-    DS1302Init(init_time);
-
+    /* 本板 DS1302 电池保持不可靠：先读芯片，只有 BCD/范围合法才采用；
+       绝不无条件 DS1302Init 覆盖。主机 sync 仍是权威对时路径。 */
     t = RTC_Read();
-    sw_hour = hour_from_chip(t.hour);
-    sw_min = t.minute;
-    sw_sec = t.second;
-    rtc_year = t.year;
-    rtc_month = t.month;
-    rtc_day = t.day;
+    if (!bcd_valid(t.hour, 0x23) || !bcd_valid(t.minute, 0x59) || !bcd_valid(t.second, 0x59)) {
+        sw_hour = 0x08; sw_min = 0x00; sw_sec = 0x00;
+    } else {
+        sw_hour = hour_from_chip(t.hour);
+        sw_min = t.minute;
+        sw_sec = t.second;
+    }
+    if (bcd_valid(t.year, 0x99) && bcd_nonzero_valid(t.month, 0x12) && bcd_nonzero_valid(t.day, 0x31)) {
+        rtc_year = t.year; rtc_month = t.month; rtc_day = t.day;
+    } else {
+        rtc_year = 0x26; rtc_month = 0x09; rtc_day = 0x02;
+    }
 
     SetUart1Rxd(&rxbuf, 1, 0, 0);
     SetEventCallBack(enumEventSys10mS, cb10ms);

@@ -1,6 +1,6 @@
 # STC-B Device Protocol v1
 
-最后更新：2026-09-09
+最后更新：2026-09-10
 
 STC-B Device Protocol v1 是 STC-B 固件与 CloudPath Driver Plugin 之间的稳定 UART 契约。它只描述设备事实与控制，不包含药盒业务。
 
@@ -17,7 +17,7 @@ STC-B Device Protocol v1 是 STC-B 固件与 CloudPath Driver Plugin 之间的�
 固件启动时发送：
 
 ~~~text
-HELLO:stcb-full:v1.3.0:proto=1:baud=115200
+HELLO:stcb-full:v1.3.1:proto=1:baud=115200
 CAPS:clock,date,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,display-pages,motor,rtc-sync,diag
 ~~~
 
@@ -90,7 +90,7 @@ CMD:<id>:<verb>[:key=value[,key=value...]]
 | display | mode=date | 显示 DS1302 日期 YYYYMMDD |
 | display | mode=sensors | 显示 `TxxxLxxx` 温度/光敏原始 ADC（3 位十六进制） |
 | display | mode=io | 显示 `HxVxK123` 霍尔、振动、K1/K2/K3 电平 |
-| display | mode=version | 显示 `StCb130-`（STC-B v1.3.0） |
+| display | mode=version | 显示 `StCb131-`（STC-B v1.3.1） |
 | motor | speed=<1..255>,steps=<nonzero> | 转动完成后 ACK |
 | motorstop | 无 | 紧急停止 |
 
@@ -118,4 +118,4 @@ DIAG 用于定位端口电平、焊接和引脚问题，不进入普通 Capabili
 - 破坏性变更发布 proto=2；Driver 可并行支持多个 major，但不得猜测。
 - 固件暂时接受 V/B/L/N/T legacy 帧用于 bring-up；legacy ACK 使用 id=0，不具备生产级关联语义。CloudPath 正式闭环只使用 `CMD:<id>:...`。
 - legacy 单字符 `D` 表示**进入 ISP 下载模式**（12 秒倒计时后 `IAP_CONTR=0xE0` 软复位，v1.2 起；v1.0 为 5 秒——stcgal 冷启动可能超过 5s 导致竞争失败），与 `tools/stcflash.py` 的全自动烧录约定一致；诊断只通过 `CMD:<id>:diag` 触发，任何上位机都不得把诊断命令编码成 `D`。
-- legacy `D` 必须以固件实际波特率发送（Full Firmware v1.2/v1.3.0 = 115200），并逐字节节流为 `D\r\n`；`tools/stcflash.py` 会等待 `ACK:0:ok` 作为固件接受 D 的证据。波特率不匹配时字节被当作噪声丢弃，自动烧录会降级为手动。
+- legacy `D` 必须以固件实际波特率发送（Full Firmware v1.2/v1.3.x = 115200），并逐字节节流为 `D\r\n`；`tools/stcflash.py` 会等待 `ACK:0:ok` 作为固件接受 D 的证据。波特率不匹配时字节被当作噪声丢弃，自动烧录会降级为手动。
