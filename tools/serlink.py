@@ -12,7 +12,7 @@
     FAIL）→ 入口统一调 utf8_console()
   - 端口释放：烧录前杀掉自家常驻串口工具（free_port；stcgal/pyserial 需独占端口）
 API:
-  sl = SerialLines(port=None, baud=9600, on_line=cb, on_dead=cb)
+  sl = SerialLines(port=None, baud=115200, on_line=cb, on_dead=cb)
   sl.open(); sl.write(b"R"); sl.close()      # 可重复 open/close（powercycle 场景）
   Emit(path)                                  # 时间戳 stdout+证据文件双写 callable
 """
@@ -22,7 +22,7 @@ import subprocess
 import sys
 import threading
 
-DEFAULT_BAUD = 9600
+DEFAULT_BAUD = 115200
 
 
 def default_port():

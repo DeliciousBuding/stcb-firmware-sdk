@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import serlink   # 串口线路基建（端口约定/释放）
 
 DEFAULT_PORT = serlink.default_port()   # env STC_PORT > COM3
-BAUD = 9600          # 板端固件串口波特率（发 D 命令用；ISP 握手波特率由 stcgal 自理）
+BAUD = 115200        # 板端固件串口波特率（发 D 命令用；ISP 握手波特率由 stcgal 自理）
 AUTO_TIMEOUT = 45    # 自动模式 stcgal 等待秒数；超时判定板上无 D 固件，降级手动
 
 
@@ -134,7 +134,7 @@ def main():
     ap.add_argument("--manual", action="store_true", help="跳过自动模式直接手动")
     ap.add_argument("--label", default="", help="日志标签")
     ap.add_argument("--baud", type=int, default=BAUD,
-                    help="板端固件波特率（只影响发 D 命令，默认 9600）")
+                    help="板端固件波特率（只影响发 D 命令，默认 115200）")
     a = ap.parse_args()
     sys.exit(0 if flash(a.hex, a.port, a.label, auto=not a.manual, baud=a.baud) else 1)
 

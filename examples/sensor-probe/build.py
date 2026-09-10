@@ -3,7 +3,7 @@
 本探针无药盒调度逻辑，单模块 main.c，绕开 demo 药盒 build 的 restricted-Keil 2KB 限制。
 默认只编译；--flash/-F 由 Captain 在安全时段统一执行，勿随意烧录（会打断 edge/plugin 链路）。
 """
-import argparse, os, subprocess, sys
+import argparse, os, re, subprocess, sys
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -25,7 +25,7 @@ def compile_main():
                         f"INCDIR({BSP_INC};{STC_INC})"],
                        capture_output=True, cwd=BASE, timeout=40)
     out = r.stdout.decode("latin-1", errors="replace")
-    if "0 ERROR" not in out:
+    if not re.search(r"\b0\s+ERROR\(S\)", out, re.IGNORECASE):
         print("[FAIL] C51")
         for line in out.splitlines():
             if "ERROR" in line.upper():
@@ -38,8 +38,11 @@ def compile_main():
         print("[FAIL] BL51")
         print(r.stdout.decode("latin-1", errors="replace")[-400:])
         return False
-    subprocess.run([OH51, os.path.join(BASE, "main")], capture_output=True, cwd=BASE, timeout=40)
     hexfile = os.path.join(BASE, "main.hex")
+    if os.path.exists(hexfile):
+        os.remove(hexfile)
+    subprocess.run([OH51, os.path.join(BASE, "main")], capture_output=True, cwd=BASE, timeout=40)
+
     if not os.path.exists(hexfile):
         print("[FAIL] OH51 (no hex)")
         return False
