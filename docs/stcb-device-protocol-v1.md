@@ -17,7 +17,7 @@ STC-B Device Protocol v1 是 STC-B 固件与 CloudPath Driver Plugin 之间的�
 固件启动时发送：
 
 ~~~text
-HELLO:stcb-full:v1.3.1:proto=1:baud=115200
+HELLO:stcb-full:v1.4.0:proto=1:baud=115200
 CAPS:clock,date,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,display-pages,motor,rtc-sync,diag
 ~~~
 
@@ -90,7 +90,7 @@ CMD:<id>:<verb>[:key=value[,key=value...]]
 | display | mode=date | 显示 DS1302 日期 YYYYMMDD |
 | display | mode=sensors | 显示 `TxxxLxxx` 温度/光敏原始 ADC（3 位十六进制） |
 | display | mode=io | 显示 `HxVxK123` 霍尔、振动、K1/K2/K3 电平 |
-| display | mode=version | 显示 `StCb131-`（STC-B v1.3.1） |
+| display | mode=version | 显示 `StCb140-`（STC-B v1.4.0） |
 | motor | speed=<1..255>,steps=<nonzero> | 转动完成后 ACK |
 | motorstop | 无 | 紧急停止 |
 

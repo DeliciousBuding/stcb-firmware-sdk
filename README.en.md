@@ -1,19 +1,23 @@
 # stcb-firmware-sdk
 
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 **Board-level firmware / hardware abstraction SDK for the STC-B learning board (IAP15F2K61S2).**
 A reusable, open-source lower layer shared by device firmware, course projects, and the
 `cloud-path-driver-stcb` platform device driver.
+
+Current stable release: **v1.4.0** (`VERSION`; history in `CHANGELOG.md`).
 
 ## Layout
 
 | Directory | Purpose |
 |-----------|---------|
 | `BSP/` | Board support package (`inc/*.h` API + `STCBSP_V3.6.LIB` Keil C51 static library) |
-| `tools/` | Device tooling: `serlink.py` (serial base / `STC_PORT` / NUL scrubbing) · `stcflash.py` (flashing SSOT) · `serial-console.py` · `serial-log.py` |
+| `tools/` | Device tooling: `serlink.py` (serial base / `STC_PORT` / NUL scrubbing) · `stcflash.py` (flashing SSOT) · `serial-console.py` · `serial-log.py` · `check-release.py` (release consistency) |
 | `examples/sensor-probe/` | Legacy 2 KB bring-up probe (V/B/L/N/T) |
 | `examples/rtc-battery-probe/` | DS1302 battery-retention ablation probe (including board-specific evidence) |
 | `examples/iap-probe/` | IAP self-programming probe (single-sector hardware evidence; OTA is not implemented) |
-| `examples/stcb-full/` | CloudPath reference firmware: full board capabilities, Device Protocol v1, real ACK/ERROR |
+| `examples/stcb-full/` | CloudPath reference firmware v1.4.0: full board capabilities, Device Protocol v1, real ACK/ERROR |
 
 ## Usage
 
@@ -33,4 +37,7 @@ control platform. The chain is **board → SDK → cloud**: device firmware (thi
 
 - Includes: **interface headers + BSP static library + tooling + reference firmware** (interface-level open source; linkable & extendable).
 - Source-level open source would require the BSP `.c` sources (not currently included).
-- License: Apache License 2.0 (see `LICENSE`). BSP/teaching-material attribution and third-party boundaries are recorded in `NOTICE`.
+
+## License and attribution
+
+This project is licensed under the Apache License 2.0 (see `LICENSE`). BSP/teaching-material attribution and third-party boundaries are recorded in `NOTICE`.

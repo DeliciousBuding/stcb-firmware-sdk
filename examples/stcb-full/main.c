@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 
-// STC-B Full Firmware v1 (stcb-full)
+// STC-B Full Firmware v1.4.0 (stcb-full)
 // CloudPath stcb 适配器的真实硬件载体。协议 v1（冻结）：见同目录 PROTOCOL.md。
 //
 // 引脚事实（原理图 2_STC-B学习板原理图.pdf U1 网络表坐标定案，2026-09-04）：
@@ -33,7 +33,7 @@
 
 code unsigned long SysClock = 11059200;
 
-code char TAG_BOOT[]  = "HELLO:stcb-full:v1.3.1:proto=1:baud=115200";
+code char TAG_BOOT[]  = "HELLO:stcb-full:v1.4.0:proto=1:baud=115200";
 code char TAG_CAPS[]  = "CAPS:clock,date,temperature,illuminance,nav,ext0,ext1,hall,vibration,key1,key2,key3,buzzer,led,display,display-pages,motor,rtc-sync,diag";
 
 sbit HALL_PIN = P1^2;   /* 原理图定案 HALL -> P1.2 */
@@ -457,8 +457,8 @@ static void show_io(void)
 
 static void show_version(void)
 {
-    /* StCb131- = STC-B v1.3.1；末位短横仅用于填满 8 位。 */
-    Seg7Print(SEG_S, SEG_t, SEG_C, SEG_b, 1, 3, 1, 12);
+    /* StCb140- = STC-B v1.4.0；末位短横仅用于填满 8 位。 */
+    Seg7Print(SEG_S, SEG_t, SEG_C, SEG_b, 1, 4, 0, 12);
 }
 
 static void show_page(void)

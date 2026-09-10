@@ -9,16 +9,18 @@
 STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设备固件、课程工程与
 `cloud-path-driver-stcb`（平台设备驱动）共享引用，是可复用、可开源的下层。
 
+当前稳定版：**v1.4.0**（`VERSION`；历史见 `CHANGELOG.md`）。
+
 ## 目录
 
 | 目录 | 作用 |
 |------|------|
 | `BSP/` | 板级驱动库（`inc/*.h` 接口 + `STCBSP_V3.6.LIB` Keil C51 静态库） |
-| `tools/` | 设备侧工具链：`serlink.py`(串口基建/STC_PORT/NUL清洗) · `stcflash.py`(烧录SSOT) · `serial-console.py` · `serial-log.py` |
+| `tools/` | 设备侧工具链：`serlink.py`(串口基建/STC_PORT/NUL清洗) · `stcflash.py`(烧录SSOT) · `serial-console.py` · `serial-log.py` · `check-release.py`(发行一致性检查) |
 | `examples/sensor-probe/` | 2KB legacy 探针（V/B/L/N/T），只用于兼容/bring-up |
 | `examples/rtc-battery-probe/` | DS1302 纽扣电池消融探针（记录本板不能依赖电池保持的实验证据） |
 | `examples/iap-probe/` | IAP 自编程探针：单扇区真板证实用户程序区可擦/写/读；OTA 本身尚未实现 |
-| `examples/stcb-full/` | CloudPath reference firmware v1.3.1：完整板载能力 + 五页数码管 + 原生歌曲音序器 + Device Protocol v1 + 真实 ACK/ERROR |
+| `examples/stcb-full/` | CloudPath reference firmware v1.4.0：完整板载能力 + 五页数码管 + 原生歌曲音序器 + Device Protocol v1 + 真实 ACK/ERROR |
 
 
 ## 生态定位
@@ -39,4 +41,7 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 
 - 已含：**接口头文件 + BSP 静态库 + 工具链 + 参考固件**（接口级开源，可直接链接与二次开发）。
 - 若需源码级开源，需补 BSP 的 `.c` 源（当前仓库未含）。
-- License: Apache License 2.0（见 `LICENSE`）。BSP/教学素材 attribution 与第三方边界见 `NOTICE`。
+
+## 许可与归属
+
+本项目采用 Apache License 2.0（见 `LICENSE`）。BSP/教学素材 attribution 与第三方边界见 `NOTICE`。

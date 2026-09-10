@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-r"""Build/flash STC-B Full Firmware v1.
+r"""Build/flash STC-B Full Firmware (stcb-full).
 
 Usage: python build.py [--flash|-f] [--flash-only|-F]
 Environment: KEIL_HOME (default C:\Keil_v5), STC_PORT (default COM3).
@@ -19,6 +19,7 @@ if sys.platform == "win32":
 
 BASE = pathlib.Path(__file__).resolve().parent
 ROOT = BASE.parents[1]
+VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 KEIL_HOME = pathlib.Path(os.environ.get("KEIL_HOME", r"C:\Keil_v5"))
 KEIL_BIN = KEIL_HOME / "C51" / "BIN"
 C51 = str(KEIL_BIN / "C51.exe")
@@ -55,7 +56,7 @@ def build() -> bool:
     if not hex_path.exists():
         print("[FAIL] OH51: main.hex not produced")
         return False
-    print(f"[OK] {hex_path.name} ({hex_path.stat().st_size} bytes)")
+    print(f"[OK] stcb-full v{VERSION}: {hex_path.name} ({hex_path.stat().st_size} bytes)")
     return True
 
 
@@ -63,13 +64,13 @@ def flash() -> bool:
     sys.path.insert(0, str(ROOT / "tools"))
     import stcflash
     # Full Firmware v1 的 UART 是 115200；stcflash 发 D 命令必须用同一波特率
-    ok = stcflash.flash(str(BASE / "main.hex"), port=PORT, label="stcb-full-v1", baud=115200)
+    ok = stcflash.flash(str(BASE / "main.hex"), port=PORT, label=f"stcb-full-v{VERSION}", baud=115200)
     print("Flash OK" if ok else "Flash FAIL")
     return ok
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Build/flash STC-B Full Firmware v1")
+    parser = argparse.ArgumentParser(description=f"Build/flash STC-B Full Firmware v{VERSION}")
     parser.add_argument("--flash", "-f", action="store_true")
     parser.add_argument("--flash-only", "-F", action="store_true")
     args = parser.parse_args()
