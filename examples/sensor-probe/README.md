@@ -1,13 +1,14 @@
 # STC-B 传感器+执行器探针固件（sensor-probe）
 
-> 独立探针固件：作为 cloudpath stcb 适配器 v2 线协议的**真实载体**（V/B/L/N/T）。
-> 无药盒调度逻辑，绕开 restricted-Keil 2KB 限制（药盒 demo build 因 2KB 无法承载 v2）。
+> 独立探针固件：作为 cloudpath stcb 适配器 v2 线协议的**真实载体**（V/B/L/N/T/D/S）。
+> 起源是绕开 restricted-Keil 2KB 限制（药盒 demo build 当时因 2KB 无法承载 v2）；
+> **该限制已于 2026-09-04 随授权版 C51 V9.61 解除**，本探针保留为 v2 的独立 bring-up 载体。
 > 线协议 SSOT：`cloudpath/.local/plan/v0.1-sensor-v2-contract.md`（§2 V 帧 / §3 执行器帧）。
 串口参数：`COM3 @ 115200 8N1`（与 CloudPath Edge `edge.yaml` 的 `baud: 115200` 对齐）。
 
 ## 用途
 
-demo 药盒固件的 demo build 被 Keil C51 **Eval 版 0800H(2KB)** 代码上限锁死，无法塞入 ADC/Vib/StepMotor 传感器/执行器（且不能砍用户函数——板级注记 10 UART-TX 红线）。故按契约建此**独立探针**（参照 `diag-rtc/` 模式），在同块 STC-B 上实现 v2 线协议，供适配器/edge 读取与驱动。
+药盒 demo 固件的 demo build 当时被 Keil C51 **Eval 版 0800H(2KB)** 代码上限锁死，无法塞入 ADC/Vib/StepMotor 传感器/执行器（且不能砍用户函数——板级注记 10 UART-TX 红线）。故按契约建此**独立探针**（参照 `diag-rtc/` 模式），在同块 STC-B 上实现 v2 线协议，供适配器/edge 读取与驱动。上限解除后这里仍是 v2 的载体：药盒固件只保留业务，协议 bring-up 归探针。
 
 ## 命令（ASCII 帧，CRLF 结尾）
 
@@ -28,7 +29,7 @@ demo 药盒固件的 demo build 被 Keil C51 **Eval 版 0800H(2KB)** 代码上�
 | `L`+1 | LED | ✅ |
 | `N`+8 | 数码管 | ✅ |
 | `T`+4 | 对时 | ✅ |
-| `M`+1 | 步进电机 | ⚠️ **未包含**（2KB 预算取舍，见下） |
+| `M`+1 | 步进电机 | ⚠️ **未包含**（StepMotor 驱动库较大，取舍见下） |
 | `O`/`R` | 开盖/提醒 | ⚠️ **未包含**（本探针无药盒状态/不需要） |
 
 ## V 帧字段
@@ -41,16 +42,16 @@ V:<hh><mm><ss><st><rt><rop><nav><ext0><ext1><hall><vib><k1>
 - `rt/rop/nav/ext0/ext1`：**原始 ADC**（10bit hex `0x000-0x3FF`），`GetADC().Rt/Rop/Nav/EXT_P10/EXT_P11`，不做单位换算。
 - `hall/vib/k1`：0/1，BSP 事件锁存（`GetHallAct/GetVibAct/GetKeyAct`）报「待处理触发事件=1否则0」，不伪造。
 
-## 蜂鸣/对时映射（2KB 内的裁剪表，帧宽序不变）
+## 档位裁剪表（帧宽序不变）
 
 - 频率档：0=静音 1=500Hz 2=800Hz 3=1kHz 4=1.2kHz 5=1.5kHz 6=2kHz 7=2.5kHz 8=3kHz 9=自定义(本固件=静音)。
 - 时长档：0=50ms 1=100ms 2=150ms 3=180ms 4=250ms 5=400ms 6=600ms 7=900ms 8=1.2s 9=自定义(本固件=0)。
 
-## 2KB 取舍（按 Captain 优先级）
+## 命令取舍
 
-硬性保留：`V`(传感器+秒) + `B`(蜂鸣) + `D`(ISP 自动烧录)。尽量保留：`L`(LED)/`N`(数码管)/`T`(对时)。
-放弃：`M`(步进电机——StepMotor 驱动库较大) 与 `S`(简化转储——V 帧已含全部信息)。
-若预算放宽（换注册版 Keil）可加回 `M`/`S`。
+保留：`V`(传感器+秒) / `B`(蜂鸣) / `L`(LED) / `N`(数码管) / `T`(对时) / `D`(ISP 自动烧录红线) / `S`(legacy 轮询→V 帧)。
+未包含：`M`(步进电机——StepMotor 驱动库较大) 与 `O`/`R`(药盒专属，本探针无药盒状态)。
+授权版 Keil 已到位，`M` 如确需可加回（非必需，属资源取舍而非编译上限，见 `docs/固件资源预算与驱动选型.md`）。
 
 ## 板级注记
 
@@ -62,6 +63,6 @@ V:<hh><mm><ss><st><rt><rop><nav><ext0><ext1><hall><vib><k1>
 
 ```bash
 cd examples/sensor-probe
-python build.py        # 编译 -> main.hex（LINK/LOCATE RUN COMPLETE，<0800H）
+python build.py        # 编译 -> main.hex
 python build.py -f     # 烧录（仅 Captain 安全时段执行；勿打断现有 edge/plugin 链路）
 ```
