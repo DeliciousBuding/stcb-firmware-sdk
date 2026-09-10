@@ -16,7 +16,8 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 | `BSP/` | 板级驱动库（`inc/*.h` 接口 + `STCBSP_V3.6.LIB` Keil C51 静态库） |
 | `tools/` | 设备侧工具链：`serlink.py`(串口基建/STC_PORT/NUL清洗) · `stcflash.py`(烧录SSOT) · `serial-console.py` · `serial-log.py` |
 | `examples/sensor-probe/` | 2KB legacy 探针（V/B/L/N/T），只用于兼容/bring-up |
-| `examples/iap-probe/` | IAP 自编程探针：真板证实固件可擦/写/读自身 Flash（真 OTA 的最小地基） |
+| `examples/rtc-battery-probe/` | DS1302 纽扣电池消融探针（记录本板不能依赖电池保持的实验证据） |
+| `examples/iap-probe/` | IAP 自编程探针：单扇区真板证实用户程序区可擦/写/读；OTA 本身尚未实现 |
 | `examples/stcb-full/` | CloudPath reference firmware v1.3.1：完整板载能力 + 五页数码管 + 原生歌曲音序器 + Device Protocol v1 + 真实 ACK/ERROR |
 
 
@@ -28,9 +29,9 @@ STC-B 学习板（IAP15F2K61S2）的**板级固件/硬件抽象 SDK**。供设�
 
 ## 使用
 
-- 依赖：Keil C51（`C51/BL51/OH51`）编译，串口默认 `COM3`（env `STC_PORT` 覆盖）。
+- 依赖：Keil C51（`C51/BL51/OH51`）编译；`KEIL_HOME` 覆盖默认安装目录 `C:\Keil_v5`，串口默认 `COM3`（env `STC_PORT` 覆盖）。
 - 编译完整固件：`cd examples/stcb-full && python build.py`（`--flash` 委托 `tools/stcflash.py`）。
-- 注意：`build.py` 中 `KEIL_BIN`/`STC_INC` 为**本机路径占位**，请按你机器上的 Keil 安装路径调整。
+- 所有 `build.py` 都通过 `KEIL_HOME` 查找工具链，不需要修改源码中的机器路径。
 
 ## 开源范围
 

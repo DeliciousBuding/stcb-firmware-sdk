@@ -31,12 +31,24 @@ A 与 C 的修法完全相反，所以必须先做这个实验再决定固件怎
    但 NVM 不依赖振荡器——两者分开判读才能把 B 从 A/C 里分出来。
 4. 已知本板 DS1302 的 hour 寄存器会自发变成 bit7 置位的垃圾值（课程期实测），
    所以**判读一律以 min/sec 为准**；hour 只作为原始证据打印（`hourraw` / `hourbad`）。
-5. DS1302 读写不需要先 Init：`final-project/diag-rtc/` 探针已板测（不调 Init 也 NVM VERIFY-OK）。
+5. DS1302 RTC/NVM 读写不要求先调用 `DS1302Init`；本探针启动路径直接读芯片，以实验本身复核该前提。
+
+## 串口命令
+
+| 命令 | 作用 |
+|---|---|
+| `H` | 打印帮助 |
+| `R` | 读取 RTC + NVM 标记并输出 `READ:` |
+| `S` | 写入基准 RTC `12:34:56` + NVM 标记 |
+| `N` | 只写 NVM 标记，不碰 RTC |
+| `I` | 对照调用 `DS1302Init(08:00:00)`（破坏当前实验状态） |
+| `T` | 连续输出 10 拍 `TICK:` |
+| `D` | 5 秒后软复位进 ISP，用于无人按键烧录 |
 
 ## 实验步骤
 
 ```bash
-# 0) 先停掉 CloudPath Edge（它占着 COM3），烧探针会顶掉 Full Firmware
+# 0) 先释放 COM3（停止 CloudPath Edge 或其他串口工具）；烧探针会顶掉 Full Firmware
 python build.py --flash
 
 # 1) 接串口（115200 8N1）
@@ -87,4 +99,4 @@ T
 cd ..\stcb-full && python build.py --flash     # 烧回 Full Firmware v1
 ```
 
-然后重启 CloudPath Edge，确认设备重新 online。
+然后重新启动原先占用串口的程序（例如 CloudPath Edge），确认设备恢复 online。

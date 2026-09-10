@@ -4,8 +4,8 @@ r"""Build/flash the STC-B RTC battery ablation probe.
 Usage: python build.py [--flash|-f] [--flash-only|-F]
 Environment: KEIL_HOME (default C:\Keil_v5), STC_PORT (default COM3).
 
-NOTE: flashing this probe replaces STC-B Full Firmware v1, so the CloudPath Edge
-loses the device until you flash stcb-full back. Stop the Edge first (it owns COM3).
+NOTE: flashing this probe replaces STC-B Full Firmware v1, so any serial client
+loses the device until you flash stcb-full back. Stop that client first.
 """
 from __future__ import annotations
 

@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""STC-B 传感器+执行器探针固件 编译/烧录：python build.py [--demo?no] [--flash|-F]
+"""STC-B 传感器+执行器探针固件 编译/烧录：python build.py [--flash|-f] [--flash-only|-F]
 本探针无药盒调度逻辑，单模块 main.c，绕开 demo 药盒 build 的 restricted-Keil 2KB 限制。
-默认只编译；--flash/-F 由 Captain 在安全时段统一执行，勿随意烧录（会打断 edge/plugin 链路）。
+默认只编译；--flash 会打断正在使用该板的上位机，执行前先释放串口。
 """
 import argparse, os, re, subprocess, sys
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-KEIL_BIN = r"C:\Keil_v5\C51\BIN"
+KEIL_HOME = os.environ.get("KEIL_HOME", r"C:\Keil_v5")
+KEIL_BIN = os.path.join(KEIL_HOME, "C51", "BIN")
 C51 = os.path.join(KEIL_BIN, "C51.exe")
 BL51 = os.path.join(KEIL_BIN, "BL51.exe")
 OH51 = os.path.join(KEIL_BIN, "OH51.exe")
-STC_INC = r"C:\Keil_v5\C51\INC\STC"
-COM_PORT = "COM3"
+STC_INC = os.path.join(KEIL_HOME, "C51", "INC", "STC")
+COM_PORT = os.environ.get("STC_PORT", "COM3")
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 BSP_INC = os.path.abspath(os.path.join(BASE, "..", "..", "BSP", "inc"))
@@ -57,7 +58,7 @@ def flash_main():
         return False
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools")))
     import stcflash
-    ok = stcflash.flash(hexfile, port=COM_PORT, label="sensor-probe")
+    ok = stcflash.flash(hexfile, port=COM_PORT, label="sensor-probe", baud=115200)
     print("Flash OK" if ok else "Flash FAIL")
     return ok
 

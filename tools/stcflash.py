@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """stcflash — 烧录 SSOT（各 build.py / debug-run.py 共用）
 
-流程：释放 COM 口 → 板上有 D 命令固件则全自动（发 D → 固件 ~5s 后 IAP_CONTR=0xE0
+流程：释放 COM 口 → 板上有 D 命令固件则全自动（发 D → 固件 5/12s 后 IAP_CONTR=0xE0
 软复位进 ISP → stcgal 握手接住，零按键）→ 失败自动降级手动（提示按 Reset）。
 
 板级事实（2026-09-02 实测，细节 SOP-STC-B烧录.md §3.5）：
@@ -90,7 +90,7 @@ def try_auto(hexpath, port=DEFAULT_PORT, baud=BAUD):
     except Exception as e:
         print(f"[stcflash] 无法发 D（{e}）")
         return False
-    print("[stcflash] D 已发出：若板上固件带 D 命令，~5s 后软复位进 ISP；stcgal 启动握手中...", flush=True)
+    print("[stcflash] D 已发出：若板上固件带 D 命令，5s（探针）或 12s（Full Firmware）后软复位进 ISP；stcgal 启动握手中...", flush=True)
     try:
         t0 = time.time()
         r = subprocess.run(_stcgal_cmd(port, hexpath), capture_output=True, text=True, timeout=AUTO_TIMEOUT)
@@ -128,6 +128,7 @@ def flash(hexpath, port=DEFAULT_PORT, label="", auto=True, baud=BAUD):
 
 
 def main():
+    serlink.utf8_console()
     ap = argparse.ArgumentParser(description="烧录 SSOT：D 命令全自动 + 手动降级")
     ap.add_argument("hex", help="hex 文件路径")
     ap.add_argument("--port", default=DEFAULT_PORT)

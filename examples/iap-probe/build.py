@@ -69,7 +69,8 @@ def build() -> bool:
     if not map_path.exists():
         print("[FAIL] link map main.M51 missing; cannot enforce the code-size gate")
         return False
-    match = re.search(r"code=(\d+)", map_path.read_text(encoding="latin-1", errors="replace"))
+    map_text = map_path.read_text(encoding="latin-1", errors="replace")
+    match = re.search(r"Program Size:.*?\bcode=(\d+)", map_text, re.IGNORECASE)
     if not match:
         print("[FAIL] cannot parse 'code=' from main.M51; code-size gate cannot run")
         return False

@@ -3,8 +3,9 @@
 > 独立探针固件：作为 cloudpath stcb 适配器 v2 线协议的**真实载体**（V/B/L/N/T/D/S）。
 > 起源是绕开 restricted-Keil 2KB 限制（药盒 demo build 当时因 2KB 无法承载 v2）；
 > **该限制已于 2026-09-04 随授权版 C51 V9.61 解除**，本探针保留为 v2 的独立 bring-up 载体。
-> 线协议 SSOT：`cloudpath/.local/plan/v0.1-sensor-v2-contract.md`（§2 V 帧 / §3 执行器帧）。
-串口参数：`COM3 @ 115200 8N1`（与 CloudPath Edge `edge.yaml` 的 `baud: 115200` 对齐）。
+> 本 README 的帧表就是该示例的公开契约；Full Firmware 的生产协议另见
+> [`docs/stcb-device-protocol-v1.md`](../../docs/stcb-device-protocol-v1.md)。
+串口参数：`COM3 @ 115200 8N1`（env `STC_PORT` 可覆盖端口）。
 
 ## 用途
 
@@ -51,7 +52,7 @@ V:<hh><mm><ss><st><rt><rop><nav><ext0><ext1><hall><vib><k1>
 
 保留：`V`(传感器+秒) / `B`(蜂鸣) / `L`(LED) / `N`(数码管) / `T`(对时) / `D`(ISP 自动烧录红线) / `S`(legacy 轮询→V 帧)。
 未包含：`M`(步进电机——StepMotor 驱动库较大) 与 `O`/`R`(药盒专属，本探针无药盒状态)。
-授权版 Keil 已到位，`M` 如确需可加回（非必需，属资源取舍而非编译上限，见 `docs/固件资源预算与驱动选型.md`）。
+授权版 Keil 已到位，`M` 如确需可加回，但需重新核算 C51 code/data 预算；当前明确不包含。
 
 ## 板级注记
 
@@ -64,5 +65,5 @@ V:<hh><mm><ss><st><rt><rop><nav><ext0><ext1><hall><vib><k1>
 ```bash
 cd examples/sensor-probe
 python build.py        # 编译 -> main.hex
-python build.py -f     # 烧录（仅 Captain 安全时段执行；勿打断现有 edge/plugin 链路）
+python build.py -f     # 烧录前先释放串口；会打断正在使用该板的上位机
 ```
